@@ -1,6 +1,7 @@
-import click, yaml
+import click, yaml, subprocess
 from rich import print
 from rich.pretty import Pretty
+import os
 
 schema = {
     'storage': {
@@ -21,7 +22,7 @@ schema = {
                 "nullable": False
             },
             "partitions": {
-                "type": "list[part-uuid]",
+                "type": "list[partuuid]",
                 "nullable": True
             }
         },
@@ -32,7 +33,7 @@ schema = {
                 "nullable": False
             },
             "partitions": {
-                "type": "list[part-uuid]",
+                "type": "list[partuuid]",
                 "nullable": True
             }
         }
@@ -49,6 +50,35 @@ schema = {
     }
 }
 
+def show_partitions():
+    print("This are your partitions and devices, check at the PARTUUID (lsblk -o NAME,SIZE,PARTUUID,MOUNTPOINTS)")
+    print(
+        subprocess.run(["lsblk"] ["-o"] ["NAME,SIZE,PARTUUID,MOUNTPOINTS"],
+        capture_output=True,
+        text=True,
+        check=True).stdout
+    )
+
+def isPartuuid(value: str):
+    result = subprocess.run(
+        ["lsblk", "-n", "-o", "PARTUUID"],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+
+    lines = result.stdout.splitlines()
+    partuuids = [l for l in lines if l.strip()]
+    if (value in partuuids):
+        return True
+    else:
+
+        return False
+
+def isPath(value: str):
+    if (os.path.exists(value)):
+        return True
+
 def parse_value(value: str, expected_type):
     switch_bool = {
         "true": True,
@@ -56,9 +86,9 @@ def parse_value(value: str, expected_type):
     }
 
     switch_list = {
-        "part_uuid": validate_partuuid,
-        "path": validate_path,
-        "service_name": validate_service
+        "partuuid": isPartuuid,
+        "path": isPath,
+        "service_name": isService
     }
 
     
@@ -72,9 +102,26 @@ def parse_value(value: str, expected_type):
         inner_type = expected_type[5:-1]
         values_list = value.split(" ")
         valid_values = []
+        invalid_values = []
         for i in values_list:
             if (switch_list.get(inner_type)(i)):
                 valid_values.append(i)
+            else:
+                invalid_values.append(i)
+        
+        if (invalid_values): # This is for any
+            print(f"This values were invalid and aren't saved: {' '.join(str(invalid_values)[1:-1])}")
+            # This is for PARTUUIDs
+            if (inner_type == "partuuid"):
+                show_partitions()
+
+        # This is for PATHS
+        if (inner_type == "path"):
+            absolute_paths = []
+            for path in valid_values:
+                absolute_paths.append(os.path.abspath(path))
+            return absolute_paths
+
         return valid_values
         
 
@@ -88,6 +135,12 @@ def cli():
 @cli.group()
 def config():
     pass
+
+@cli.command()
+@click.argument("option", required=True)
+def show(option):
+    if (option == "partitions"):
+        show_partitions()
 
 @config.command()
 @click.argument("category", required=False)

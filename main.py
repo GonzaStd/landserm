@@ -70,7 +70,7 @@ def parse_value(value: str, expected_type):
 
     elif (expected_type.startswith("list")):
         inner_type = expected_type[5:-1]
-        values_list = values.split(" ")
+        values_list = value.split(" ")
         valid_values = []
         for i in values_list:
             if (switch_list.get(inner_type)(i)):

@@ -1,0 +1,2 @@
+## What is LandSerM?
+This acronim stands for LAN and Server Monitor. That is the idea, thay you can easily configure/personalize triggers on events, custom logs, display storage and services monitoring, network changes and weird traffic, etc.

@@ -2,111 +2,9 @@ import click, yaml, subprocess
 from rich import print
 from rich.pretty import Pretty
 import os
-
-schema = {
-    'storage': {
-        'backup': {
-            "enabled": {
-                "type": "bool",
-                "nullable": False
-            },
-            "repositories": {
-                "type": "list[path]",
-                "nullable": True
-            }
-        },
-
-        'space': {
-            "enabled": {
-                "type": "bool",
-                "nullable": False
-            },
-            "partitions": {
-                "type": "list[partuuid]",
-                "nullable": True
-            }
-        },
-
-        'mount': {
-            "enabled": {
-                "type": "bool",
-                "nullable": False
-            },
-            "partitions": {
-                "type": "list[partuuid]",
-                "nullable": True
-            }
-        }
-    },
-    'services': {
-        'enabled':  {
-            "type": "bool",
-            "nullable": False
-        },
-        'include': {
-                "type": "list[service_name]",
-                "nullable": True
-            }
-    }
-}
-
-def show_partitions():
-    print("This are your partitions and devices, check at the PARTUUID (lsblk -o NAME,SIZE,PARTUUID,MOUNTPOINTS)")
-    print(
-        subprocess.run(["lsblk", "-o", "NAME,SIZE,PARTUUID,MOUNTPOINTS"],
-        capture_output=True,
-        text=True,
-        check=True).stdout
-    )
-
-def show_services():
-    print("For the next question, consider your terminal buffer size.")
-    a = input("¿Do you want to see your services? y to proceed, any keyword to skip: ") 
-    if (a.lower == "y"):
-        print("This are your services (systemctl list-unit-files")
-        print(
-            subprocess.run(["systemctl", "list-unit-files"],
-            capture_output=True,
-            text=True,
-            check=True).stdout
-        )
-    pass
-
-def isPartuuid(value: str):
-    result = subprocess.run(
-        ["lsblk", "-n", "-o", "PARTUUID"],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-
-    lines = result.stdout.splitlines()
-    partuuids = [l for l in lines if l.strip()]
-    if (value in partuuids):
-        return True
-    else:
-
-        return False
-
-def isPath(value: str):
-    if (os.path.exists(value)):
-        return True
-
-def isService(value: str):
-    if (not value.endswith(".service")):
-        value.append(".service")
-
-    result = subprocess.run(["systemctl", "list-unit-files", "|", "awk", "'$1 /\\.service$/ {print $1}'"],
-    capture_output = True,
-    text = True,
-    check = True)
-
-    lines = result.stdout.splitlines()
-    services = [s for s in lines if s.strip()]
-    if (value in services):
-        return True
-    else:
-        return False
+from schema import schema
+from validators import *
+from system import *
 
 def parse_value(value: str, expected_type): 
     """ It returns valid values to store in yaml, and invalid values to display, 
@@ -160,7 +58,8 @@ def config():
 @click.argument("option", required=True)
 def show(option):
     if (option == "partitions"):
-        show_partitions()
+        print("This are your partitions and devices, check at the PARTUUID (lsblk -o NAME,SIZE,PARTUUID,MOUNTPOINTS)")
+        print(getPartitions())
 
 @config.command()
 @click.argument("category", required=False)
@@ -207,7 +106,11 @@ def set(keys, value):
                     show_partitions()
 
                 if (inner_type == "service"):
-                    show_services()
+                    print("For the next question, consider your terminal buffer size.")
+                    a = input("¿Do you want to see your services? y to proceed, any keyword to skip: ") 
+                    if (a.lower == "y"):
+                        print("This are your services (systemctl list-unit-files")
+                        print(getServices())
 
             if (inner_type == "path"):
                 absolute_paths = []

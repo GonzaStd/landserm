@@ -1,13 +1,13 @@
+services:
+  enabled: null
+  include: null
 storage:
   backup:
-    enabled:
-    repositories:
-  space:
-    enabled:
-    partitions:
+    enabled: false
+    repositories: null
   mount:
-    enabled:
-    partitions:
-services:
-  enabled:
-  include:
+    enabled: null
+    partitions: null
+  space:
+    enabled: null
+    partitions: null

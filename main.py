@@ -193,7 +193,6 @@ def set(keys, value):
     and rewrite the new variable with a new value (useless)
     """
     last_key = keys_l[-1]
-    print(config_mod)
     if (field_type == "bool"):
         if (len(parsed_values)==1):
             config_mod[last_key] = parsed_values[0]
@@ -201,7 +200,6 @@ def set(keys, value):
             print("Invalid value, you should use true/false instead.")
 
     if (field_type.startswith("list")):
-            print(invalid_values)
             if (invalid_values):
                 print(f"This values were invalid and aren't saved: {str(invalid_values)[1:-1]}")
 
@@ -218,8 +216,8 @@ def set(keys, value):
                 parsed_values = absolute_paths
             
             config_mod[last_key] = parsed_values
-            
-    print(config_mod)
+    with open("./config.yaml", "w") as config_file:
+        yaml.safe_dump(config_data, config_file)
     
 
 if __name__ == "__main__":

@@ -1,7 +1,12 @@
 .venv
 .vscode
+__pycache__
 */__pycache__
 */*/__pycache__
 */*/*/__pycache__
 __pycache__
 scrap
+*.egg-info
+build/
+dist/
+*.pyc 

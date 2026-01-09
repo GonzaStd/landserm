@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+
+[project]
+name = "landserm"
+version = "0.1.0"
+dependencies = [
+    "click",
+    "pyyaml",
+    "rich"
+]
+
+[tool.setuptools]
+packages = ["landserm"]
+
+[project.scripts]
+landserm = "landserm.cli.main:cli"

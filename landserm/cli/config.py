@@ -30,16 +30,18 @@ def show(domain: str = None, unit: str = None):
 def set(key_path, value):
     keys = key_path.split(".") # A list of all the keys (indeed the path) to the config parameter/field.
     domain = keys[0]
+    keys = keys[1:] # domain key removed.
+
     config_data = load_config(domain)
     config_mod =  config_data # Here will remain the data we'll modify.
-    schema_path = getSchema(domain) # Here is the whole schema, that's were we start
-    for key in keys[1:]: # This goes through each key except the first one (the domain)
-        schema_path = schema_path[key] # This goes through each key that leads us to the configuration field
-    # Finally, we have the schema of the property.
 
+    schema_path = getSchema(domain) # Here is the whole schema, that's were we start
+    for key in keys:
+        schema_path = schema_path[key] # This goes through each key that leads us to the configuration field
     field_type = schema_path["type"] # We access the type that this field should receive
     parsed_values, invalid_values, inner_type = parse_value(value, field_type)
-    for key in keys[:-1]: # This goes through each key except the last one
+    
+    for key in keys[:-1]: # This goes through each key except the the last one
         config_mod = config_mod[key]
     """
     We need the last key to mutate the field from the same tree

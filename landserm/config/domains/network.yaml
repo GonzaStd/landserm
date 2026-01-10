@@ -1,2 +1,20 @@
-networking:
-  enabled: null
+# Code based on/copied from:  https://github.com/ekomsSavior/network_ids
+# Copyright (c) 2026 ekomsSavior
+# MIT License - see LICENSE
+enabled: null
+
+modes: 
+  new-device-alerting: null
+  devices-discovery: null
+  port-scanning: null
+  traffic-analysis: null
+  vulnerability-checks: null
+  threat-intelligence-checks: null
+  dos-attach-detection: null
+  supicious-dns-detection: null
+  risk-services-detection: null
+
+range:
+  auto-detect: true
+  manual: null
+  

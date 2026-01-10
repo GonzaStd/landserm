@@ -1,10 +1,9 @@
-storage:
-  backup:
-    enabled: true
-    repositories: null
-  mount:
-    enabled: null
-    partitions: null
-  space:
-    enabled: null
-    partitions: null
+backup:
+  enabled: true
+  repositories: null
+mount:
+  enabled: null
+  partitions: null
+space:
+  enabled: null
+  partitions: null

@@ -1,0 +1,20 @@
+enabled: null
+
+scope:
+  auto: true
+  cidr: null
+  interface: null
+
+monitoring:
+  devices: true
+  traffic: true
+
+detection:
+  scans: true
+  dos: true
+  dns: true
+  risky_services: true
+  vulnerabilities: false
+
+intelligence:
+  enabled: true

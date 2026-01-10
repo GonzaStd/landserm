@@ -4,7 +4,7 @@ from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, network, policies, services, storage
 
 landserm_root = str(Path(__file__).resolve().parents[2])
-config_path = landserm_root + "/landserm/domains/"
+config_path = landserm_root + "/config/domains/"
 config_files = ["network.yaml", "services.yaml", "storage.yaml"]
 config_files_path = {
     "network": None,

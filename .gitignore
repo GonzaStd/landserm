@@ -9,4 +9,4 @@ scrap
 *.egg-info
 build/
 dist/
-*.pyc 
+*.pyc

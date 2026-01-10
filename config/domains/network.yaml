@@ -13,8 +13,18 @@ detection:
   scans: true
   dos: true
   dns: true
-  risky_services: true
-  vulnerabilities: false
+  risky_services:
+    enabled: true
+    suspicious:
+      include: []
+      exclude: []
+  risky_ports:
+    enabled: true
+    suspicious:
+      include: []
+      exclude: []
+  vulnerabilities: true
+  scanning: "passive" # "passive"/"active"
 
 intelligence:
   enabled: true

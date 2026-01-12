@@ -4,7 +4,7 @@ from rich.pretty import Pretty
 from os.path import abspath
 from landserm.config.system import *
 from landserm.semantics.types import parse_value
-from landserm.config.loader import getSchema, load_config, save_config, domains
+from landserm.config.loader import domainsConfigPaths, loadConfig, saveConfig, getSchema, domains
 
 @click.group()
 def config():
@@ -17,12 +17,12 @@ def show(domain: str = None, unit: str = None):
     if domain:
         domain = domain.lower()
         print(domain.upper())
-        config_data = load_config(domain)
-        print(Pretty(config_data, expand_all=True))
+        configData = loadConfig(domain, domainsConfigPaths)
+        print(Pretty(configData, expand_all=True))
     else:
         for domain in domains:
-            config_data = load_config(domain)
-            print(Pretty(config_data, expand_all=True))
+            configData = loadConfig(domain, domainsConfigPaths)
+            print(Pretty(configData, expand_all=True))
 
 @config.command()
 @click.argument("key_path", required=True)
@@ -32,48 +32,48 @@ def set(key_path, value):
     domain = keys[0]
     keys = keys[1:] # domain key removed.
 
-    config_data = load_config(domain)
-    config_mod =  config_data # Here will remain the data we'll modify.
+    configData = loadConfig(domain, domainsConfigPaths)
+    configMod =  configData # Here will remain the data we'll modify.
 
-    schema_path = getSchema(domain) # Here is the whole schema, that's were we start
+    schemaPath = getSchema(domain) # Here is the whole schema, that's were we start
     for key in keys:
-        schema_path = schema_path[key] # This goes through each key that leads us to the configuration field
-    field_type = schema_path["type"] # We access the type that this field should receive
-    parsed_values, invalid_values, inner_type = parse_value(value, field_type)
-    
+        schemaPath = schemaPath[key] # This goes through each key that leads us to the configuration field
+    fieldType = schemaPath["type"] # We access the type that this field should receive
+    parsedValues, invalidValues, innerType = parse_value(value, fieldType)
+
     for key in keys[:-1]: # This goes through each key except the the last one
-        config_mod = config_mod[key]
+        configMod = configMod[key]
     """
     We need the last key to mutate the field from the same tree
     otherwise we would have copy the value from the field to a new variable
     and rewrite the new variable with a new value (useless)
     """
-    last_key = keys[-1]
-    if (field_type == "bool"):
-        if (len(parsed_values)==1):
-            config_mod[last_key] = parsed_values[0]
+    lastKey = keys[-1]
+    if (fieldType == "bool"):
+        if (len(parsedValues)==1):
+            configMod[lastKey] = parsedValues[0]
         else:
             print("Invalid value, you should use true/false instead.")
 
-    if (field_type.startswith("list")):
-            if (invalid_values):
-                print(f"This values were invalid and aren't saved: {str(invalid_values)[1:-1]}")
+    if (fieldType.startswith("list")):
+            if (invalidValues):
+                print(f"This values were invalid and aren't saved: {str(invalidValues)[1:-1]}")
 
-                if (inner_type == "partuuid"):
+                if (innerType == "partuuid"):
                     getPartitions()
 
-                if (inner_type == "service"):
+                if (innerType == "service"):
                     print("For the next question, consider your terminal buffer size.")
                     a = input("¿Do you want to see your services? y to proceed, any keyword to skip: ") 
                     if (a.lower == "y"):
-                        print("This are your services (systemctl list-unit-files")
-                        print(getServices())
+                        print("This are your services (systemctl list-unit-files)")
+                        print(getServicesData())
 
-            if (inner_type == "path"):
-                absolute_paths = []
-                for path in parsed_values:
-                    absolute_paths.append(abspath(path))
-                parsed_values = absolute_paths
-            config_mod[last_key] = parsed_values
+            if (innerType == "path"):
+                absolutePaths = []
+                for path in parsedValues:
+                    absolutePaths.append(abspath(path))
+                parsedValues = absolutePaths
+            configMod[lastKey] = parsedValues
             
-    save_config(domain, config_data)
+    saveConfig(domain, domainsConfigPaths, configData)

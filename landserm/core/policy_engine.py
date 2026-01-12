@@ -1,4 +1,5 @@
 from landserm.config.loader import loadConfig, resolveFilesPath, domains
+from landserm.core.actions import executeActions
 
 policiesConfigPath = resolveFilesPath("/config/policies/", domains)
 
@@ -27,7 +28,28 @@ def process(events: list, policiesIndex):
         candidatePolicies = domainIndex.get(event.kind, list())
 
         for policy in candidatePolicies:
-            evaluate(policy, event)
+            result = evaluate(policy, event)
+            if result == 0:
+                continue
+            else:
+                eventData, policyActions = result
+                executeActions(eventData, policyActions)
 
 def evaluate(policy, event):
-    pass
+    name = policy["name"]
+    policyCondition = policy["data"]["when"]
+
+    print("LOG: Evaluating policy", name)
+
+    if policyCondition.get("subject") != event.subject or policyCondition.get("payload") != event.payload:
+        print("LOG: policy and event don't match.")
+        return 0
+    
+    print("LOG: policy and event matches.")
+
+    eventData = dict(event.getBasicData()) # returns a dictionary. It helps mapping variables
+
+    policyActions = policy["data"]["then"]
+
+    return eventData, policyActions
+

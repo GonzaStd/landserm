@@ -1,17 +1,16 @@
 class Event:
-    def __init__(self, domain, kind, subject, payload, severity):
+    def __init__(self, domain, kind, subject, payload):
         self.domain = domain
         self.kind = kind
         self.subject = subject
         self.payload = payload
-        self.severity = severity
+
 
     def getBasicData(self):
-        basic_data = {
+        basicData = {
             "domain": self.domain,
             "kind": self.kind,
             "subject": self.subject,
-            "payload": self.payload,
-            "severity": self.severity
+            "payload": self.payload
         }
-        return basic_data
+        return basicData

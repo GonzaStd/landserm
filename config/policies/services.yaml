@@ -4,5 +4,9 @@ policy-name:
     subject: "cron.service"
     payload: "enabled"
   then:
-    action:
-      script: "~/projects/landserm/config/scripts/script.sh ${subject} ${payload}"
+      script: 
+        name: "hello_world"
+        args:
+          - $subject
+          - $payload 
+        

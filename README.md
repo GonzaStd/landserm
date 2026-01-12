@@ -17,3 +17,7 @@ The **actions** you that you can choose are: To modify a unit (for example, dele
 ## How should I configure it?
 
 You can manually edit the `config.yaml` file or you can use `main.py config set <path.to.key> <value>`.
+
+## Policies
+
+They can configure scripts to execute and arguments based on context variables (for example, subject and payload from the event). The way to handle this securely will be to use only config/scripts path to execute scripts, and configure permissions under "landserm" user.

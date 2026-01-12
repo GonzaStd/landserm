@@ -3,33 +3,46 @@ from pathlib import Path
 from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, network, policies, services, storage
 
-landserm_root = str(Path(__file__).resolve().parents[2])
-config_path = landserm_root + "/config/domains/"
-config_files = ["network.yaml", "services.yaml", "storage.yaml"]
-config_files_path = {
-    "network": None,
-    "services": None,
-    "storage": None
-}
+landsermRoot = str(Path(__file__).resolve().parents[2])
 
-domains = []
+def resolveFilesPath(base: str, fileNames: list):
+    files = list()
+    for name in fileNames:
+        name = str(name)
+        if not name.endswith(".yaml"):
+            file = name + ".yaml"
+        else:
+            file = name
+        files.append(file)
+    filesPath = dict()
+    filesPath.fromkeys(files)
+    
+    if not base.startswith(landsermRoot):
+        base = landsermRoot + base
+    if not base.endswith("/"):
+        base = base + "/"
 
-for file in config_files:
-    file_path = config_path + file
-    domain = file[:-5]
-    domains.append(domain)
-    if isPath(file_path):
-        config_files_path[domain] = file_path
-    else:
-        print(f"WARNING: {file} is not in config path: {config_path}")
+    for file in files:
+        filePath = base + file
+        name = file[:-5]
+        if isPath(filePath):
+            filesPath[name] = filePath
+        else:
+            print(f"WARNING: {file} is not in path: {base}")
+    
+    return filesPath
+        
+domains = ["network", "services", "storage.yaml"]
 
-def load_config(domain):
-    with open(config_files_path[domain]) as f:
+domainsConfigPaths = resolveFilesPath("/config/domains/", domains)
+
+def loadConfig(name, configPaths):
+    with open(configPaths[name]) as f:
         return yaml.safe_load(f)
 
-def save_config(domain, config_data):
-    with open(config_files_path[domain], "w") as f:
-        yaml.safe_dump(config_data, f)
+def saveConfig(name, configPaths, configData):
+    with open(configPaths[name], "w") as f:
+        yaml.safe_dump(configData, f)
 
 def getSchema(name):
     switch = {

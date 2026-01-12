@@ -1,0 +1,12 @@
+policy-name:
+  when:
+    kind:
+    subject:
+    payload:
+  then:
+    action:
+      delivery:
+        enabled: null
+        methods: []
+        priority: null
+      script: "path/to/script.sh"

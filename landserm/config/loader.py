@@ -38,7 +38,7 @@ domainsConfigPaths = resolveFilesPath("/config/domains/", domains)
 
 def loadConfig(name, configPaths):
     with open(configPaths[name]) as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) # Returns a dict object
 
 def saveConfig(name, configPaths, configData):
     with open(configPaths[name], "w") as f:

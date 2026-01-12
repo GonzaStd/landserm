@@ -25,16 +25,16 @@ def getServicesData():
             check=True).stdout
 
 def getServices():
-    services_data = getServicesData()
+    servicesData = getServicesData()
     
     services = []
 
-    for line in services_data.splitlines():
+    for line in servicesData.splitlines():
         if not line.strip() or line.startswith("UNIT"):
             continue
-        unit_name = line.split()[0]
+        unitName = line.split()[0]
 
-        if unit_name.endswith(".service"):
-            services.append(unit_name)
+        if unitName.endswith(".service"):
+            services.append(unitName)
     
     return services

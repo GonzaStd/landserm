@@ -1,23 +1,23 @@
 from landserm.config.system import getServicesData
 from landserm.core.events import Event
 
-def scan(services_config):
-    services_data = getServicesData()
-    target_services = list(services_config["include"])
-    target_states = dict.fromkeys(target_services)
+def scan(servicesConfig):
+    servicesData = getServicesData()
+    targetServices = list(servicesConfig["include"])
+    targetStates = dict.fromkeys(targetServices)
     events = list()
-    for line in services_data.splitlines():
+    for line in servicesData.splitlines():
         if not line.strip() or line.startswith("UNIT"):
             continue
-        unit_name = line.split()[0]
-        if unit_name in target_services:
+        unitName = line.split()[0]
+        if unitName in targetServices:
             state = line.split()[1]
-            target_states[unit_name] = state
-            target_services.remove(unit_name)
-            event = Event("services", "state", unit_name, state, "info")
+            targetStates[unitName] = state
+            targetServices.remove(unitName)
+            event = Event("services", "state", unitName, state)
             events.append(event)
-    for missing in target_services:
-        event = Event("services", "state", missing, "missing", "info")
+    for missing in targetServices:
+        event = Event("services", "state", missing, "missing")
         events.append(event)
     
     return events

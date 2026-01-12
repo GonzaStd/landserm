@@ -3,7 +3,7 @@ from rich import print
 from rich.pretty import Pretty
 from os.path import abspath
 from landserm.config.system import *
-from landserm.semantics.types import parse_value
+from landserm.semantics.types import parseValue
 from landserm.config.loader import domainsConfigPaths, loadConfig, saveConfig, getSchema, domains
 
 @click.group()
@@ -25,10 +25,10 @@ def show(domain: str = None, unit: str = None):
             print(Pretty(configData, expand_all=True))
 
 @config.command()
-@click.argument("key_path", required=True)
+@click.argument("keyPath", required=True)
 @click.argument("value", required=True)
-def set(key_path, value):
-    keys = key_path.split(".") # A list of all the keys (indeed the path) to the config parameter/field.
+def set(keyPath, value):
+    keys = keyPath.split(".") # A list of all the keys (indeed the path) to the config parameter/field.
     domain = keys[0]
     keys = keys[1:] # domain key removed.
 
@@ -39,7 +39,7 @@ def set(key_path, value):
     for key in keys:
         schemaPath = schemaPath[key] # This goes through each key that leads us to the configuration field
     fieldType = schemaPath["type"] # We access the type that this field should receive
-    parsedValues, invalidValues, innerType = parse_value(value, fieldType)
+    parsedValues, invalidValues, innerType = parseValue(value, fieldType)
 
     for key in keys[:-1]: # This goes through each key except the the last one
         configMod = configMod[key]

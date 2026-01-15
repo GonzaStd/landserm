@@ -6,12 +6,16 @@ policiesConfigPath = resolveFilesPath("/config/policies/", domains)
 
 def policiesIndexation():
     index = dict()
-
+    invalidPolicies = list()
     for domain in domains:
         domainPolicies = dict(loadConfig(domain, policiesConfigPath))
 
         for policyName, policyData in domainPolicies.items():
             kind = policyData["when"].get("kind")
+
+            if not kind or not policyData["then"]:
+                invalidPolicies.append(policyName)
+                pass
 
             index.setdefault(domain, dict())
             index[domain].setdefault(kind, list())
@@ -19,7 +23,7 @@ def policiesIndexation():
                 "name": policyName,
                 "data": policyData
             })
-    return index
+    return index, invalidPolicies
             
 
 def process(events: list, policiesIndex):
@@ -37,7 +41,7 @@ def process(events: list, policiesIndex):
 
 def evaluate(policy, event):
     name = policy["name"]
-    policyCondition = policy["data"]["when"]
+    policyCondition = str(policy["data"]["when"])
 
     print("LOG: Evaluating policy", name)
 

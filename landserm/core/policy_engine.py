@@ -1,4 +1,4 @@
-from landserm.config.loader import loadConfig, resolveFilesPath, domains
+from landserm.config.loader import loadConfig, resolveFilesPath, domains, domainsConfigPaths
 from landserm.core.actions import executeActions
 
 policiesConfigPath = resolveFilesPath("/config/policies/", domains)
@@ -6,8 +6,15 @@ policiesConfigPath = resolveFilesPath("/config/policies/", domains)
 
 def policiesIndexation():
     index = dict()
-    invalidPolicies = list()
-    for domain in domains:
+    invalidPolicies = list() # A list of policy names that are incomplete/invalid
+
+    for domain in domains: # domains -> list of strings with the name of each domain.
+
+        domainConfig = dict(loadConfig(domain, domainsConfigPaths))
+
+        if (not domainConfig["enabled"]): # If domain is disabled, do not check its policies.
+            continue
+
         domainPolicies = dict(loadConfig(domain, policiesConfigPath))
 
         for policyName, policyData in domainPolicies.items():
@@ -15,7 +22,7 @@ def policiesIndexation():
 
             if not kind or not policyData["then"]:
                 invalidPolicies.append(policyName)
-                pass
+                continue
 
             index.setdefault(domain, dict())
             index[domain].setdefault(kind, list())
@@ -23,15 +30,40 @@ def policiesIndexation():
                 "name": policyName,
                 "data": policyData
             })
-    return index, invalidPolicies
-            
+        """
+        index example:
+        `{
+        "service": {
+                "kind": [{
+                    "name": "never-stop-ssh", 
+                    "data": {
+                        "when": {
+                            "kind": "status",
+                            "subject": "sshd",
+                            "payload": "stopped"
+                        },
+                        "then": {
+                            "script": "start-ssh"
+                        }
+                    }
+                }]
+            },
+        }
+        `
+        
+        """
 
-def process(events: list, policiesIndex):
+    return index, invalidPolicies
+        
+# It will run something like this: process(scan(), policiesIndexation())
+
+def process(events: list, policiesIndex: dict):
     for event in events:
-        domainIndex = policiesIndex.get(event.domain, dict())
-        candidatePolicies = domainIndex.get(event.kind, list())
+        domainIndex = policiesIndex.get(event.domain, dict()) # This is a dict
+        candidatePolicies = domainIndex.get(event.kind, list()) # This is a list
 
         for policy in candidatePolicies:
+            policy = dict(policy)
             result = evaluate(policy, event)
             if result == 0:
                 continue
@@ -39,7 +71,7 @@ def process(events: list, policiesIndex):
                 eventData, policyActions = result
                 executeActions(eventData, policyActions)
 
-def evaluate(policy, event):
+def evaluate(policy: dict, event):
     name = policy["name"]
     policyCondition = str(policy["data"]["when"])
 

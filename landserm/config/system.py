@@ -18,14 +18,21 @@ def getPartitions():
             text=True,
             check=True).stdout
 
-def getServicesData():
+def getServicesStartData():
     return subprocess.run(["systemctl", "list-unit-files"],
             capture_output=True,
             text=True,
             check=True).stdout
 
+def getServiceStatus(service):
+    return subprocess.run(["systemctl", "is-active", service],
+            capture_output=True,
+            text=True,
+            check=True).stdout
+
+
 def getServices():
-    servicesData = getServicesData()
+    servicesData = getServicesStartData()
     
     services = []
 

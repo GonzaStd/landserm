@@ -63,7 +63,7 @@ def process(events: list, policiesIndex: dict):
         candidatePolicies = domainIndex.get(event.kind, list()) # This is a list
 
         for policy in candidatePolicies:
-            policy = dict(policy)
+            policy = dict(policy) # Dict with name and data keys.
             result = evaluate(policy, event)
             if result == 0:
                 continue
@@ -73,7 +73,7 @@ def process(events: list, policiesIndex: dict):
 
 def evaluate(policy: dict, event):
     name = policy["name"]
-    policyCondition = str(policy["data"]["when"])
+    policyCondition = dict(policy["data"]["when"])
 
     print("LOG: Evaluating policy", name)
 

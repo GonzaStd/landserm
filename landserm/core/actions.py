@@ -8,7 +8,7 @@ allowedVarsSet = {"domain", "kind", "subject", "payload"}
 
 
 def execScript(context: dict, scriptData: dict):
-    scriptName = str(scriptData.name)
+    scriptName = str(scriptData["name"])
     if not scriptName.endswith(".sh"):
         scriptName += ".sh"
 
@@ -17,7 +17,7 @@ def execScript(context: dict, scriptData: dict):
         print("LOG: Invalid path or script", scriptName, "does not exist.")
         return 1
     
-    arguments = list(scriptData.args)
+    arguments = list(scriptData["args"])
     validArguments = list()
 
     if arguments:

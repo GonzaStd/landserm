@@ -1,24 +1,22 @@
 from landserm.config.system import getServicesStartData, getServiceStatus
 from landserm.config.validators import isService
 from landserm.core.events import Event
-from landserm.bus.systemd import listen_unit_changes, unescape_unit_name
+from landserm.bus.systemd import unescape_unit_name
 from landserm.core.policy_engine import process, policiesIndexation
 
 def handle_systemd_signal(msg):
     # msg has properties like path, interface, member, body, etc.
-    print(msg)
     path = msg.path
     if not path.startswith("/org/freedesktop/systemd1/unit/"):
         return
     
     escaped_unit_name = path.split("/")[-1]
     unit_name = unescape_unit_name(escaped_unit_name)
-
     if len(msg.body) >= 2:
-        changed = list(msg.body[1]) # changed properties
-        if "ActiveState" in changed:
-            state = changed["ActiveState"].value # active/inactive/failed
-
+        interface = msg.body[0]
+        changed = dict(msg.body[1])
+        if interface == 'org.freedesktop.systemd1.Unit':
+            state = changed.get("ActiveState").value # active/inactive/failed
             event = Event("services", "status", unit_name, state)
 
             policiesIndex, _ = policiesIndexation()

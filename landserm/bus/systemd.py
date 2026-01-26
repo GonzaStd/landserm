@@ -36,7 +36,7 @@ def unescape_unit_name(escaped: str) -> str:
 async def listen_unit_changes(callback):
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
 
-    matchRules = ["type='signal'," + f"sender='{SYSTEMD_NAME}'" + "interface='org.freedesktop.DBus.Properties'"] # arg='value'
+    matchRule = f"type='signal',sender='{SYSTEMD_NAME}',interface='org.freedesktop.DBus.Properties'" # arg='value'
     # (signature depends on values type)
 
     msg = Message(destination="org.freedesktop.DBus",
@@ -44,7 +44,7 @@ async def listen_unit_changes(callback):
                   interface="org.freedesktop.DBus",
                   member="AddMatch",
                   signature="s",
-                  body=matchRules
+                  body=[matchRule]
                   ) 
     
     reply = await bus.call(msg) # waits until d-bus responds, returns a new message with the answer (a match)

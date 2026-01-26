@@ -29,16 +29,14 @@ def resolveFilesPath(base: str, fileNames: list):
             filesPath[name] = filePath
         else:
             print(f"WARNING: {file} is not in path: {base}")
-    
     return filesPath
         
-domains = ["network", "services", "storage.yaml"]
+domains = ["network", "services", "storage"]
 
 domainsConfigPaths = resolveFilesPath("/config/domains/", domains)
-
-def loadConfig(name, configPaths):
+def loadConfig(name: str, configPaths: dict) -> dict:
     with open(configPaths[name]) as f:
-        return yaml.safe_load(f) # Returns a dict object
+        return yaml.safe_load(f)
 
 def saveConfig(name, configPaths, configData):
     with open(configPaths[name], "w") as f:

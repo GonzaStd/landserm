@@ -5,7 +5,7 @@ from dbus_next.aio import MessageBus
 SYSTEMD_NAME = "org.freedesktop.systemd1"
 SYSTEMD_PATH = "/org/freedesktop/systemd1"
 
-def escape_unit_name(unit: str) -> str:
+def escape_unit_filename(unit: str) -> str:
     # ".service" -> "_2eservice"
     stringList = []
     for character in unit:
@@ -19,7 +19,7 @@ def escape_unit_name(unit: str) -> str:
     
     return "".join(stringList) # This converts a list of strings into one string
 
-def unescape_unit_name(escaped: str) -> str:
+def unescape_unit_filename(escaped: str) -> str:
     # "_2eservice" -> ".service"
     def replace(match):
         # chr() converts a decimal number into a character.
@@ -51,9 +51,11 @@ async def listen_unit_changes(callback):
     assert reply.message_type == MessageType.METHOD_RETURN
     
     def handler(message):
+        print(message.message_type, message.member, message.interface)
         if message.message_type != MessageType.SIGNAL:
             return
-        
+        if message.member != "PropertiesChanged":
+            return
         if message.interface != "org.freedesktop.DBus.Properties":
             return
         

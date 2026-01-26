@@ -27,8 +27,7 @@ def getServicesStartData():
 def getServiceStatus(service):
     return subprocess.run(["systemctl", "is-active", service],
             capture_output=True,
-            text=True,
-            check=True).stdout
+            text=True).stdout.strip() # Use string, not exit code. Without \n.
 
 
 def getServices():

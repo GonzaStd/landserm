@@ -17,7 +17,7 @@ def execScript(context: dict, scriptData: dict):
         print("LOG: Invalid path or script", scriptName, "does not exist.")
         return 1
     
-    arguments = list(scriptData["args"])
+    arguments = list(scriptData.get("args")) if "args" in scriptData else False
     validArguments = list()
 
     if arguments:

@@ -11,8 +11,7 @@ def policiesIndexation():
     for domain in domains: # domains -> list of strings with the name of each domain.
 
         domainConfig = dict(loadConfig(domain, domainsConfigPaths))
-
-        if (not domainConfig["enabled"]): # If domain is disabled, do not check its policies.
+        if (not domainConfig.get("enabled")): # If domain is disabled, do not check its policies.
             continue
 
         domainPolicies = dict(loadConfig(domain, policiesConfigPath))

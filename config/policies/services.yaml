@@ -1,12 +1,8 @@
 policy-name:
   when:
     kind: "status"
-    subject: "cron.service"
-    payload: "enabled"
+    subject: "cron"
+    payload: "inactive"
   then:
       script: 
         name: "hello_world"
-        args:
-          - $subject
-          - $payload 
-        

@@ -17,7 +17,7 @@ def handle_systemd_signal(msg):
     if len(msg.body) >= 2:
         changed = list(msg.body[1]) # changed properties
         if "ActiveState" in changed:
-            state = changed["ArctiveState"].value # active/inactive/failed
+            state = changed["ActiveState"].value # active/inactive/failed
 
             event = Event("services", "status", unit_name, state)
 

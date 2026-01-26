@@ -1,4 +1,6 @@
 click==8.3.1
+dbus-next==0.2.3
+-e git+https://github.com/GonzaStd/landserm@485e134dfacce57a79133872a8d4a4182b85c6c7#egg=landserm
 markdown-it-py==4.0.0
 mdurl==0.1.2
 Pygments==2.19.2

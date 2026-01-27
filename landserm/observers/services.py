@@ -59,8 +59,8 @@ def handle_systemd_signal(msg):
         interface = msg.body[0]
         changed = dict(msg.body[1])
         if interface == 'org.freedesktop.systemd1.Unit':
-            friendlyData = ["active", "sub", "load", "result", "exec_main", "pid"]
-            dbusData = {
+            friendlyProperties = ["active", "sub", "load", "result", "exec_main", "pid"]
+            dbusProperties = {
                 "active": "ActiveState",
                 "sub": "SubState",
                 "load": "LoadState",
@@ -68,10 +68,11 @@ def handle_systemd_signal(msg):
                 "exec_main": "ExecMainStatus",
                 "pid": "MainPID"
             }
-            payload.fromkeys(friendlyData)
-            for fd in friendlyData:
-                if dbusData[fd] in changed:
-                    payload[fd] = changed.get(dbusData[fd]).value
+            payload.fromkeys(friendlyProperties)
+            for friendlyProperty in friendlyProperties:
+                if dbusProperties[friendlyProperty] in changed:
+                    payload[friendlyProperty] = changed.get(dbusProperties[friendlyProperty]).value
+                    
             unitLastState = lastState.get(unit_name)
             if payload == unitLastState:
                 return

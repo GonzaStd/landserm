@@ -55,17 +55,14 @@ def handle_systemd_signal(msg):
 
     if len(msg.body) >= 2:
         interface = msg.body[0]
-
         changed = dict(msg.body[1])
         if interface == 'org.freedesktop.systemd1.Unit':
             if "ActiveState" in changed:
                 unit_name = unit_filename[:-8]
                 state = changed.get("ActiveState").value # active/inactive/failed
-                print(last_state)
                 if last_state.get(unit_name) == state:
                     return
                 last_state[unit_name] = state
-                print(state)
                 event = Event("services", "status", unit_name, state)
 
                 policiesIndex, _ = policiesIndexation()

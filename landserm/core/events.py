@@ -5,7 +5,6 @@ class Event:
         self.subject = subject
         self.payload = payload
 
-
     def getBasicData(self):
         basicData = {
             "domain": self.domain,

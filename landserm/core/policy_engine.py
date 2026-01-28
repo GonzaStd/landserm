@@ -83,9 +83,7 @@ def evaluate(policy: dict, event):
     
     print("LOG: policy and event matches.")
 
-    eventData = dict(event.getBasicData()) # returns a dictionary. It helps mapping variables
-
     policyActions = policy["data"]["then"]
 
-    return eventData, policyActions # This is for actions.py
+    return event, policyActions # This is for actions.py
 

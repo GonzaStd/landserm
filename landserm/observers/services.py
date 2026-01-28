@@ -1,4 +1,4 @@
-from landserm.config.system import getServicesStartData, getServiceStatus
+from landserm.config.system import getServicesStartData, getServiceDetails
 from landserm.config.validators import isService
 from landserm.core.events import Event
 from landserm.bus.systemd import unescape_unit_filename
@@ -28,25 +28,23 @@ def checkAutoStart(servicesConfig):
 
 def checkStatus(servicesConfig):
     targetServices = list(servicesConfig["include"])
-    targetsStatus = dict.fromkeys(targetServices)
     events = list()
     for tService in targetServices:
         if isService(tService):
-            status = getServiceStatus(tService)
-            targetsStatus[tService] = status
-            event = Event("services", "status", tService, status)
+            payload = getServiceDetails(tService)
+            event = Event("services", "status", tService, payload)
             events.append(event)
     return events
 
 servicesConfig = loadConfig("services", domainsConfigPaths)
 lastState = dict().fromkeys(servicesConfig.get("include"))
-initialStates = checkStatus(servicesConfig) # I need a function that throws events with payloads with more data. I'll implement "getServiceDetails"
+initialStates = checkStatus(servicesConfig) # Events with payload from both interfaces
 for event in initialStates:
     lastState[event.subject] = event.payload
+print("INITIAL STATES", lastState)
 
 def handle_systemd_signal(msg):
     # msg has properties like path, interface, member, body, etc.
-    payload=dict()
     path = msg.path
     if not path.startswith("/org/freedesktop/systemd1/unit/"):
         return
@@ -56,29 +54,34 @@ def handle_systemd_signal(msg):
     unit_name = unit_filename[:-8]
 
     if len(msg.body) >= 2:
-        interface = msg.body[0]
+        interface = str(msg.body[0])
         changed = dict(msg.body[1])
-        if interface == 'org.freedesktop.systemd1.Unit':
-            friendlyProperties = ["active", "sub", "load", "result", "exec_main", "pid"]
-            dbusProperties = {
-                "active": "ActiveState",
-                "sub": "SubState",
-                "load": "LoadState",
-                "result": "Result",
-                "exec_main": "ExecMainStatus",
-                "pid": "MainPID"
-            }
-            payload.fromkeys(friendlyProperties)
-            for friendlyProperty in friendlyProperties:
-                if dbusProperties[friendlyProperty] in changed:
-                    payload[friendlyProperty] = changed.get(dbusProperties[friendlyProperty]).value
-                    
-            unitLastState = lastState.get(unit_name)
-            if payload == unitLastState:
-                return
-            unitLastState[unit_name] = payload
-            event = Event(domain="services", kind="status", subject=unit_name, payload=payload)
+        friendlyProperties = ["active", "sub", "load", "result", "exec_main", "pid"]
+        dbusProperties = {
+            "active": "ActiveState",
+            "sub": "SubState",
+            "load": "LoadState",
+            "result": "Result",
+            "exec_main": "ExecMainStatus",
+            "pid": "MainPID"
+        }
+        
+        partialPayload = dict()
+        for fProperty in friendlyProperties:
+            dProperty = dbusProperties[fProperty]
+            if dProperty in changed:
+                partialPayload[fProperty] = changed[dProperty].value
 
-            policiesIndex, _ = policiesIndexation()
-            process([event], policiesIndex)
+        lastStatePayload = lastState.get(unit_name, dict())
+        payload = {**lastStatePayload, **partialPayload} # Merged payload
+        
+        if lastStatePayload == payload: # Only work if some property has changed
+            return
+        
+        lastState[unit_name] = payload 
+        print("MESSAGE PAYLOAD", payload)
+
+        event = Event(domain="services", kind="status", subject=unit_name, payload=payload)
+        policiesIndex, _ = policiesIndexation()
+        process([event], policiesIndex)
 

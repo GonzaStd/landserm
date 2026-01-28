@@ -24,10 +24,38 @@ def getServicesStartData():
             text=True,
             check=True).stdout
 
-def getServiceStatus(service):
-    return subprocess.run(["systemctl", "is-active", service],
+def getServiceDetails(service):
+    output = subprocess.run(["systemctl", "show", service, "--property=ActiveState,SubState,LoadState,Result,ExecMainStatus,MainPID"],
             capture_output=True,
-            text=True).stdout.strip() # Use string, not exit code. Without \n.
+            text=True)
+    payload = dict()
+    friendlyData = ["active", "sub", "load", "result", "exec_main", "pid"]
+    payload.fromkeys(friendlyData)
+    dbusProperties = {
+        "active": "ActiveState",
+        "sub": "SubState",
+        "load": "LoadState",
+        "result": "Result",
+        "exec_main": "ExecMainStatus",
+        "pid": "MainPID"
+    }
+    payload.fromkeys(friendlyData)
+
+    resultData = dict()
+    for line in output.stdout.strip().split('\n'):
+        if '=' in line:
+            data = line.split('=', 1)
+            key = data[0]
+            value = data[1]
+            resultData[key] = value
+
+    for fd in friendlyData:
+        rd = resultData.get(dbusProperties[fd])
+        if rd.isdigit():
+            rd = int(rd)
+        payload[fd] = rd
+
+    return payload
 
 
 def getServices():

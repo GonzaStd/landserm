@@ -2,7 +2,9 @@ policy-name:
   when:
     kind: "status"
     subject: "cron"
-    payload: "inactive"
+    payload: {
+      
+    }
   then:
       script: 
         name: "hello_world"

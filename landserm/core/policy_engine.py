@@ -71,14 +71,15 @@ def process(events: list, policiesIndex: dict):
                 executeActions(eventData, policyActions)
 
 def evaluate(policy: dict, event):
-    name = policy["name"]
     policyCondition = dict(policy["data"]["when"])
-
-    print("LOG: Evaluating policy", name)
-
-    if policyCondition.get("subject") != event.subject or policyCondition.get("payload") != event.payload:
-        print("LOG: policy and event don't match.")
+    policyPayload = policyCondition.get("payload", {})
+    
+    if policyCondition.get("subject") != event.subject:
         return 0
+
+    for key, value in policyPayload.items():
+        if event.payload.get(key) !=  value:
+            return 0
     
     print("LOG: policy and event matches.")
 

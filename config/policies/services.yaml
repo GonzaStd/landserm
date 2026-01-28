@@ -2,9 +2,10 @@ policy-name:
   when:
     kind: "status"
     subject: "cron"
-    payload: {
-      
-    }
+    payload: {}
   then:
       script: 
         name: "hello_world"
+        args: ["$domain", "$kind", "$subject", "$payload.active", "$payload.pid"]
+      log:
+        enabled: true

@@ -4,12 +4,3 @@ class Event:
         self.kind = kind
         self.subject = subject
         self.payload = payload
-
-    def getBasicData(self):
-        basicData = {
-            "domain": self.domain,
-            "kind": self.kind,
-            "subject": self.subject,
-            "payload": self.payload
-        }
-        return basicData

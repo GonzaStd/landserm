@@ -39,7 +39,6 @@ def getServiceDetails(service):
         "exec_main": "ExecMainStatus",
         "pid": "MainPID"
     }
-    payload.fromkeys(friendlyData)
 
     resultData = dict()
     for line in output.stdout.strip().split('\n'):

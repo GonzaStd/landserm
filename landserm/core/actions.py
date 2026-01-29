@@ -1,7 +1,8 @@
 import subprocess
 from landserm.config.loader import landsermRoot
 from landserm.config.validators import isPath
-from landserm.core.delivery import deliveryLog
+from landserm.core.delivery import deliveryLog, deliveryOLED
+from landserm.core.context import expand
 
 scriptsPath = landsermRoot + "/config/scripts/"
 allowedVarsSet = {"domain", "kind", "subject", "payload"}
@@ -19,32 +20,19 @@ def execScript(eventData: object, actionData: dict):
         return 1
     
     arguments = list(actionData.get("args")) if "args" in actionData else False
-    validArguments = list()
 
-    if arguments:
-        for arg in arguments:
-            arg = str(arg)
-            if arg.startswith("$"):
-                arg = arg[1:]
-                if arg in allowedVarsSet:
-                    validArguments.append(getattr(eventData, arg))
-                elif '.' in arg and arg.split(".")[0] == "payload":
-                    payloadData = dict(eventData.payload)
-                    keys = arg.split(".")[1:]
-                    pivot = payloadData
-                    for key in keys:
-                        pivot = pivot[key]
-                    validArguments.append(str(pivot))
-            else:
-                validArguments.append(str(arg))
-    
-    command = validArguments
-    command.insert(0, scriptPath)
+    validArguments = list()
+    for arg in actionData.get("args", []):
+        expanded = expand(str(arg), eventData)
+        validArguments.append(expanded)
+   
+    command = [scriptPath] + validArguments
     subprocess.run(command, shell=False)
 
 supportedActions = {
      "script": execScript,
-     "log": deliveryLog
+     "log": deliveryLog,
+     "oled": deliveryOLED
 }
 def executeActions(eventData: object, allActions: dict):
         for action in allActions:

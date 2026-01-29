@@ -6,7 +6,7 @@ oled:
   height: 64
   font_size: 11
 
-notify:
+push:
   enabled: true
   method: "ntfy"
   ntfy:

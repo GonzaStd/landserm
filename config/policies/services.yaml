@@ -2,10 +2,13 @@ policy-name:
   when:
     kind: "status"
     subject: "cron"
-    payload: {}
+    payload: {"active": "inactive"}
   then:
       script: 
         name: "hello_world"
         args: ["$domain", "$kind", "$subject", "$payload.active", "$payload.pid"]
       log:
         enabled: true
+      oled:
+        message: "$subject $kind\n**$payload.active**\nCACA"
+        duration: 5

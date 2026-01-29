@@ -67,7 +67,7 @@ def set(keyPath, value):
                     a = input("¿Do you want to see your services? y to proceed, any keyword to skip: ") 
                     if (a.lower == "y"):
                         print("This are your services (systemctl list-unit-files)")
-                        print(getServicesData())
+                        print(getServices())
 
             if (innerType == "path"):
                 absolutePaths = []

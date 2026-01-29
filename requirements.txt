@@ -1,8 +1,12 @@
+cbor2==5.8.0
 click==8.3.1
 dbus-next==0.2.3
--e git+https://github.com/GonzaStd/landserm@485e134dfacce57a79133872a8d4a4182b85c6c7#egg=landserm
+luma.core==2.5.3
+luma.oled==3.14.0
 markdown-it-py==4.0.0
 mdurl==0.1.2
+pillow==12.1.0
 Pygments==2.19.2
 PyYAML==6.0.3
 rich==14.2.0
+smbus2==0.6.0

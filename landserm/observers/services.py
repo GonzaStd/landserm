@@ -78,6 +78,18 @@ def handle_systemd_signal(msg):
         if lastStatePayload == payload: # Only work if some property has changed
             return
         
+        # Only trigger event if significant properties changed (not just pid or exec_main)
+        significant_props = ['active', 'sub', 'load', 'result']
+        significant_changed = any(
+            lastStatePayload.get(prop) != payload.get(prop) 
+            for prop in significant_props
+        )
+        
+        if not significant_changed:
+            # Update lastState but don't trigger event
+            lastState[unit_name] = payload
+            return
+        
         lastState[unit_name] = payload 
         print("MESSAGE PAYLOAD", payload)
 

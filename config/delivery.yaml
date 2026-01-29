@@ -1,0 +1,22 @@
+oled:
+  enabled: true
+  driver: "sh1106"
+  device: "/dev/12c-1"
+  width: 128
+  height: 64
+  font_size: 11
+
+notify:
+  enabled: true
+  method: "ntfy"
+  ntfy:
+    server: "https://ntfy.sh"
+    topic: "landserm-alerts"
+    auth: null
+  gotify:
+    server: "https://localhost:8080"
+    token: "TOKEN"
+  webhook:
+    url: "https://domain/webhook"
+    headers:
+      Authorization: "Bearer TOKEN"

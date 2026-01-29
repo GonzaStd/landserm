@@ -21,14 +21,14 @@ def deliveryLog(eventData: object, actionData: dict):
     else:
         payload = str(eventData.payload)
     
-    timestamp = datetime.now().strftime("%B-%d-Y %H:%M:%S")
+    timestamp = datetime.now().strftime("%B %d, %y %H:%M:%S")
 
     logMessage = f"""
 [{timestamp}] {eventData.domain.upper()} EVENT
-  Kind:     {eventData.kind}
+  Kind:  {eventData.kind}
   Subject:  {eventData.subject}
   Payload:
-{payload}
+  {payload}
 {'='*50}
 """
     try:
@@ -40,6 +40,7 @@ def deliveryLog(eventData: object, actionData: dict):
                You can skip \"path\" in config and it will use the default path: {landsermRoot}/logs/landserm-{eventData.domain}.log")
         
 def driverOLED(name: str, config: dict):
+    from luma.core.error import DeviceNotFoundError
     try:
         from luma.core.interface.serial import i2c, spi
         from luma.core.render import canvas
@@ -54,27 +55,30 @@ def driverOLED(name: str, config: dict):
     address = config.get("address", 0x3C)
 
     device = None
+    try:
+        if name == "ssd1306":
+            from luma.oled.device import ssd1306
+            serial = i2c(port=port, address=address)
+            device = ssd1306(serial, width=width, height=height)
+        
+        elif name == "sh1106":
+            from luma.oled.device import sh1106
+            serial = i2c(port=port, address=address)
+            device = sh1106(serial, width=width, height=height)
+        
+        elif name == "ssd1331":
+            from luma.oled.device import ssd1331
+            # SSD1331 typically uses SPI, not I2C
+            spi_port = config.get("spi_port", 0)
+            spi_device = config.get("spi_device", 0)
+            serial = spi(port=spi_port, device=spi_device)
+            device = ssd1331(serial, width=width, height=height)
 
-    if name == "ssd1306":
-        from luma.oled.device import ssd1306
-        serial = i2c(port=port, address=address)
-        device = ssd1306(serial, width=width, height=height)
-    
-    elif name == "sh1106":
-        from luma.oled.device import sh1106
-        serial = i2c(port=port, address=address)
-        device = sh1106(serial, width=width, height=height)
-    
-    elif name == "ssd1331":
-        from luma.oled.device import ssd1331
-        # SSD1331 typically uses SPI, not I2C
-        spi_port = config.get("spi_port", 0)
-        spi_device = config.get("spi_device", 0)
-        serial = spi(port=spi_port, device=spi_device)
-        device = ssd1331(serial, width=width, height=height)
-
-    else:
-        print(f"ERROR: Unknown OLED driver: {name}")
+        else:
+            print(f"ERROR: Unknown OLED driver: {name}")
+            return None
+    except DeviceNotFoundError as e:
+        print(f"OLED device not found, but config has enabled it. Error: {e}")
         return None
 
     return device

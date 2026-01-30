@@ -56,10 +56,10 @@ def handle_systemd_signal(msg):
     if len(msg.body) >= 2:
         interface = str(msg.body[0])
         changed = dict(msg.body[1])
-        friendlyProperties = ["active", "sub", "load", "result", "exec_main", "pid"]
+        friendlyProperties = ["active", "substate", "load", "result", "exec_main", "pid"]
         dbusProperties = {
             "active": "ActiveState",
-            "sub": "SubState",
+            "substate": "SubState",
             "load": "LoadState",
             "result": "Result",
             "exec_main": "ExecMainStatus",
@@ -79,7 +79,7 @@ def handle_systemd_signal(msg):
             return
         
         # Only trigger event if significant properties changed (not just pid or exec_main)
-        significant_props = ['active', 'sub', 'load', 'result']
+        significant_props = ['active', 'substate', 'load', 'result']
         significant_changed = any(
             lastStatePayload.get(prop) != payload.get(prop) 
             for prop in significant_props

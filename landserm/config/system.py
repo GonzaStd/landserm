@@ -29,10 +29,10 @@ def getServiceDetails(service):
             capture_output=True,
             text=True)
     payload = dict()
-    friendlyData = ["active", "sub", "load", "result", "exec_main", "pid"]
+    friendlyData = ["active", "substate", "load", "result", "exec_main", "pid"]
     dbusProperties = {
         "active": "ActiveState",
-        "sub": "SubState",
+        "substate": "SubState",
         "load": "LoadState",
         "result": "Result",
         "exec_main": "ExecMainStatus",

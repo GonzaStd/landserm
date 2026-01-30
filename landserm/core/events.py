@@ -1,6 +1,6 @@
 class Event:
-    def __init__(self, domain, kind, subject, payload):
+    def __init__(self, domain, kind, subject, systemdInfo):
         self.domain = domain
         self.kind = kind
         self.subject = subject
-        self.payload = payload
+        self.systemdInfo = systemdInfo

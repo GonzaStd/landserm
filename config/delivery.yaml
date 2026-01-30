@@ -8,15 +8,14 @@ oled:
 
 push:
   enabled: true
-  method: "ntfy"
   ntfy:
     server: "https://ntfy.sh"
     topic: "landserm-alerts"
     auth: null
   gotify:
     server: "https://localhost:8080"
-    token: "TOKEN"
+    token: null # "TOKEN" if applies
   webhook:
     url: "https://domain/webhook"
     headers:
-      Authorization: "Bearer TOKEN"
+      Authorization: null #"Bearer TOKEN"  if applies

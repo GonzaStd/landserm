@@ -4,6 +4,7 @@ policy-name:
     subject: "cron"
     payload: {"active": "inactive"}
   then:
+      priority: "default"
       script: 
         name: "hello_world"
         args: ["$domain", "$kind", "$subject", "$payload.active", "$payload.pid"]
@@ -12,3 +13,5 @@ policy-name:
       oled:
         message: "$subject $kind\n**$payload.active**\nCACA"
         duration: 5
+      push:
+        methods: ["ntfy"]

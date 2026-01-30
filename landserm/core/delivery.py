@@ -5,12 +5,13 @@ from datetime import datetime
 from landserm.config.loader import landsermRoot
 from landserm.config.loader import loadConfig, resolveFilesPath
 from landserm.core.context import expand
+from landserm.core.events import Event
 
 oledQueue = Queue()
 oledWorker = None
 oledDevice = None
 
-def deliveryLog(eventData: object, actionData: dict):
+def deliveryLog(eventData: Event, actionData: dict):
     if not actionData.get("enabled"):
         return 0
     
@@ -149,7 +150,7 @@ def oledWorkerThread(device, fontSize):
 
         oledQueue.task_done()
 
-def deliveryOLED(eventData: object, actionData: dict):
+def deliveryOLED(eventData: Event, actionData: dict):
     global oledWorker, oledDevice
 
     oledConfig = loadConfig("delivery", resolveFilesPath(f"{landsermRoot}/config" , ["delivery"])).get("oled", {})
@@ -174,3 +175,127 @@ def deliveryOLED(eventData: object, actionData: dict):
     duration = actionData.get("duration", 5)
     oledQueue.put((message, duration))
     print(f"LOG: OLED message queued")
+
+DOMAIN_HEADERS = ["color", "emoji"]
+DOMAINS = {
+    "services": [4250465, "⚙️"],      # #40DB61 green
+    "network": [5418066, "🌐"],       # #52A9DB blue
+    "storage": [14368850, "💾"],      # #DB4052 red
+    "custom": [14398272, "📢"]        # #DBB740 yellow
+}
+
+PRIORITY_HEADERS = ["emoji", "text"]
+PRIORITIES = {
+    "low": ["ℹ️", "Low"],
+    "default": ["⚠️", "Normal"],
+    "high": ["🔴", "High"],
+    "urgent": ["🚨", "Urgent"]
+}
+
+def getData(name: str, property: str):
+    if name in DOMAINS.keys():
+        index = DOMAIN_HEADERS.index(name)
+        return DOMAINS[name][index]
+    
+    elif name in PRIORITIES.keys():
+        index = PRIORITY_HEADERS.index(name)
+        return DOMAINS[name][index]
+
+
+
+class Push():
+    def __init__(self, eventData: Event, actionData: dict, nameMethod: str):
+        if not actionData.get("enabled"):
+            return None
+        
+        deliveryConfig = resolveFilesPath(base=f"{landsermRoot}/config", fileNames=["delivery"])
+        self.config = loadConfig(name="delivery", configPaths=deliveryConfig).get("push").get(nameMethod)
+        self.name = nameMethod
+
+        self.eventData = eventData
+        self.domain = eventData.domain
+        self.subject = eventData.subject
+        self.kind = eventData.kind
+        self.payload = eventData.payload
+
+        self.actionData = actionData
+        self.priority = actionData.get("priority", "default")
+
+        self.domainEmoji = getData(self.domain,"emoji")
+        self.domainColor = getData(self.domain,"color")
+
+        self.priorEmoji = getData(self.priority,"emoji")
+        self.priorText = getData(self.priority, "text")
+
+        self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain}"
+        self.defaultBody = f"**Event** \"{self.kind}\" from {self.subject}\n**Priority**: {self.priorText}\n\n"
+        self.payloadText = ""
+        if isinstance(self.eventData.payload, dict):
+            for key, value in self.payload.items():
+                self.payloadText += f"{key}: {value}\n"
+        else:
+            message += f"{self.eventData.payload}"
+        
+        self.fields = []
+        if self.name == "webhook":
+            if isinstance(self.payload, dict):
+                for key, value in self.payload.items():
+                    self.fields.append({"name": key.capitalize, "value": str(value), "inline": True})
+            else:
+                self.fields.append({"name": "Payload", "value": str(value), "inline": False})
+            
+
+
+def deliveryPush(eventData: Event, actionData: dict):
+    nameMethods = ["ntfy", "gotify", "webhook"]
+    selectedMethods = actionData.get("push").get("methods")
+
+    functionMethods = {
+        "ntfy": Notify,
+        "gotify": Gotify,
+        "webhook": Webhook
+        }
+    
+    for method in selectedMethods:
+            if not method in nameMethods:
+                print(f"WARNING: Bad policy configuration, method {method} doesn't exist. Skipping method.")
+                continue
+            functionMethods[method](Push(eventData, actionData, method))
+
+def Notify(ctx: Push):
+
+    configNotify = ctx.config
+    server = configNotify.get("server", False)
+    topic = configNotify.get("topic", f"landserm-{ctx.domain}")
+    auth = configNotify.get("auth", None)
+    
+    if not server:
+        print("ERROR: ntfy server not configured. Skipping notify.")
+        return 1
+    
+    headers = {
+        "Title": ctx.defaultTitle,
+        "Priority": ctx.priority,
+        "Tags": ctx.domainEmoji
+    }
+
+    if auth:
+        headers["Authorization"] = f"Bearer {auth}"
+    
+    try:
+        import requests
+        response = requests.post(f"{server}/{topic}", data=ctx.encode('utf-8', headers=headers, timeout=10))
+        if response.status_code == 200:
+            print(f"LOG: ntfy notification sent to {topic}")
+            return 0
+        print(f"ERROR: ntfy failed with HTTP status code: {response.status_code}")
+        return 1
+    except Exception as e:
+        print(f"ERROR: ntfy request failed: {e}")
+        return 1
+    
+def Gotify(ctx: Push):
+    pass
+
+def Webhook(ctx: Push):
+    pass

@@ -1,7 +1,7 @@
 import json
 import threading, time
 from queue import Queue
-from datetime import datetime
+from datetime import datetime, timezone
 from landserm.config.loader import landsermRoot
 from landserm.config.loader import loadConfig, resolveFilesPath
 from landserm.core.context import expand
@@ -194,22 +194,21 @@ PRIORITIES = {
 
 def getData(name: str, property: str):
     if name in DOMAINS.keys():
-        index = DOMAIN_HEADERS.index(name)
+        index = DOMAIN_HEADERS.index(property)
         return DOMAINS[name][index]
     
     elif name in PRIORITIES.keys():
-        index = PRIORITY_HEADERS.index(name)
-        return DOMAINS[name][index]
+        index = PRIORITY_HEADERS.index(property)
+        return PRIORITIES[name][index]
 
 
 
 class Push():
     def __init__(self, eventData: Event, actionData: dict, nameMethod: str):
-        if not actionData.get("enabled"):
-            return None
         
-        deliveryConfig = resolveFilesPath(base=f"{landsermRoot}/config", fileNames=["delivery"])
-        self.config = loadConfig(name="delivery", configPaths=deliveryConfig).get("push").get(nameMethod)
+        self.deliveryConfig = resolveFilesPath(base=f"{landsermRoot}/config", fileNames=["delivery"])
+        self.config = loadConfig(name="delivery", configPaths=self.deliveryConfig).get("push").get(nameMethod)
+        
         self.name = nameMethod
 
         self.eventData = eventData
@@ -227,8 +226,8 @@ class Push():
         self.priorEmoji = getData(self.priority,"emoji")
         self.priorText = getData(self.priority, "text")
 
-        self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain}"
-        self.defaultBody = f"**Event** \"{self.kind}\" from {self.subject}\n**Priority**: {self.priorText}\n\n"
+        self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain.capitalize()}"
+        self.defaultBody = f"Priority: {self.priorText}\nEvent **{self.kind.upper()}** from **\"{self.subject}\"** service\n{"="*35}\n"
         self.payloadText = ""
         if isinstance(self.eventData.payload, dict):
             for key, value in self.payload.items():
@@ -240,7 +239,7 @@ class Push():
         if self.name == "webhook":
             if isinstance(self.payload, dict):
                 for key, value in self.payload.items():
-                    self.fields.append({"name": key.capitalize, "value": str(value), "inline": True})
+                    self.fields.append({"name": key.capitalize(), "value": str(value), "inline": True})
             else:
                 self.fields.append({"name": "Payload", "value": str(value), "inline": False})
             
@@ -248,7 +247,7 @@ class Push():
 
 def deliveryPush(eventData: Event, actionData: dict):
     nameMethods = ["ntfy", "gotify", "webhook"]
-    selectedMethods = actionData.get("push").get("methods")
+    selectedMethods = actionData.get("methods")
 
     functionMethods = {
         "ntfy": Notify,
@@ -260,7 +259,11 @@ def deliveryPush(eventData: Event, actionData: dict):
             if not method in nameMethods:
                 print(f"WARNING: Bad policy configuration, method {method} doesn't exist. Skipping method.")
                 continue
-            functionMethods[method](Push(eventData, actionData, method))
+            methodInstance = Push(eventData, actionData, method)
+            if methodInstance.deliveryConfig.get("enabled", False):
+                print(f"LOG: Policy calls the next push methods: {selectedMethods} but push is disabled in config/delivery.yaml")
+                return 1
+            functionMethods[method](methodInstance)
 
 def Notify(ctx: Push):
 
@@ -295,7 +298,66 @@ def Notify(ctx: Push):
         return 1
     
 def Gotify(ctx: Push):
-    pass
+    server = ctx.config.get("server")
+    token = ctx.config.get("token")
+
+    if not server or not token:
+        print("ERROR: Gotify server and/or token not configured. Skipping.")
+        return 1
+    
+    priorityMap = {"low": 3, "default": 5, "high": 8, "urgent": 10}
+
+    data = {
+        "title": ctx.defaultTitle,
+        "message": ctx.defaultBody,
+        "priority": priorityMap.get(ctx.priority, 5)
+    }
+
+    try:
+        import requests
+        response = requests.post(f"{server}/message", json=data, params={"token": token}, timeout=10)
+        if response.status_code == 200:
+            print("LOG: Gotify notification sent")
+            return 0
+        print(f"ERROR: Gotify failed with HTTP status code {response.status_code}")
+        return 1
+    except Exception as e:
+        print(f"ERROR: Gotify request failed: {e}")
 
 def Webhook(ctx: Push):
-    pass
+    url = ctx.config.get("url")
+    headers = ctx.config.get("headers", {})
+
+    if not url:
+        print("ERROR: Webhook URL not configured")
+        return 1
+    
+    discordPayload = {
+        "embeds": [{
+            "title": ctx.defaultTitle,
+            "description": ctx.defaultBody,
+            "color": ctx.domainColor,
+            "fields": ctx.fields,
+            "author": {
+                "name": "Landserm by GonzaStd",
+                "url": "https://github.com/GonzaStd/landserm",
+                "icon_url": "https://github.com/GonzaStd/landserm/blob/main/resources/GitHub_Invertocat_White.png?raw=true"
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }]
+    }
+
+    requestHeaders = {"Content-Type": "application/json"}
+    if headers:
+        requestHeaders.update({key: value for key, value in headers.items()})
+    
+    try:
+        import requests
+        response = response = requests.post(url, json=discordPayload, headers=requestHeaders, timeout=10)
+        if response.status_code in [200, 204]:
+            print("LOG: Webhook notification sent")
+            return 0
+        print(f"ERROR: Discord Webhook failed HTTP status code {response.status_code}")
+        return 1
+    except Exception as e:
+        print(f"ERROR: Discord Webhook request failed: {e}")

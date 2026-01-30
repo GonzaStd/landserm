@@ -1,7 +1,7 @@
 import subprocess
 from landserm.config.loader import landsermRoot
 from landserm.config.validators import isPath
-from landserm.core.delivery import deliveryLog, deliveryOLED
+from landserm.core.delivery import deliveryLog, deliveryOLED, deliveryPush
 from landserm.core.context import expand
 from landserm.core.events import Event
 
@@ -33,10 +33,13 @@ def execScript(eventData: Event, actionData: dict):
 supportedActions = {
      "script": execScript,
      "log": deliveryLog,
-     "oled": deliveryOLED
+     "oled": deliveryOLED,
+     "push": deliveryPush
 }
 def executeActions(eventData: Event, allActions: dict):
         for action in allActions:
+            if not action in supportedActions:
+                 continue
             actionData = allActions[action]
             print("LOG: executing action", action)
             supportedActions[action](eventData, actionData)

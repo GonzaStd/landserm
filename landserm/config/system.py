@@ -1,4 +1,4 @@
-import subprocess
+import subprocess, psutil
 
 def getPartuuid():
     result =    subprocess.run(
@@ -46,13 +46,25 @@ def getServiceDetails(service):
             key = data[0]
             value = data[1]
             resultData[key] = value
-
+    pid = -1
     for fd in friendlyData:
         rd = resultData.get(dbusProperties[fd])
-        if rd.isdigit():
+        if rd and rd.isdigit():
             rd = int(rd)
+            if fd == "pid":
+                pid = rd
         payload[fd] = rd
 
+    payload["cpu_percent"] = 0.0
+    payload["memory_mb"] = 0.0
+
+    if pid > 0:
+        try:
+            process = psutil.Process(pid)
+            payload["cpu_percent"] = round(process.cpu_percent(interval=0.1), 2)
+            payload["memory_mb"] = round(process.memory_info().rss / (1024 * 1024), 2)
+        except(psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
     return payload
 
 

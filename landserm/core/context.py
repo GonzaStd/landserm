@@ -1,6 +1,7 @@
+from landserm.core.events import Event
 eventProperties = {"domain", "kind", "subject"}
 
-def expand(template: str, eventData: object) -> str:
+def expand(template: str, eventData: Event) -> str:
     result = template
     for var in eventProperties:
         if f"${var}" in result:

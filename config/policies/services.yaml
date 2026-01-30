@@ -14,4 +14,4 @@ policy-name:
         message: "$subject $kind\n**$payload.active**\nCACA"
         duration: 5
       push:
-        methods: ["webhook"]
+        methods: ["webhook", "ntfy"]

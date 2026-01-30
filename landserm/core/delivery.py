@@ -227,7 +227,7 @@ class Push():
         self.priorText = getData(self.priority, "text")
 
         self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain.capitalize()}"
-        self.defaultBody = f"Priority: {self.priorText}\nEvent **{self.kind.upper()}** from **\"{self.subject}\"** service\n{"="*35}\n"
+        self.defaultBody = f"Priority: {self.priorText}\nEvent **{self.kind.upper()}** from **\"{self.subject}\"** service\n"
         self.payloadText = ""
         if isinstance(self.eventData.payload, dict):
             for key, value in self.payload.items():
@@ -276,18 +276,35 @@ def Notify(ctx: Push):
         print("ERROR: ntfy server not configured. Skipping notify.")
         return 1
     
+    domainTags = {
+        "services": "gear",
+        "network": "globe_with_meridians", 
+        "storage": "floppy_disk"
+    }
+    
+    priorityTags = {
+        "low": "information_source",
+        "default": "warning",
+        "high": "red_circle",
+        "urgent": "rotating_light"
+    }
+
+
     headers = {
-        "Title": ctx.defaultTitle,
+        "X-Title": ctx.domain.capitalize(),
         "Priority": ctx.priority,
-        "Tags": ctx.domainEmoji
+        "Tags": f"{domainTags.get(ctx.domain, 'bell')},{priorityTags.get(ctx.priority, 'warning')}",
+        "Markdown": "yes"
     }
 
     if auth:
         headers["Authorization"] = f"Bearer {auth}"
     
+    message=f"{ctx.defaultBody}\n\nInformation:\n```{ctx.payloadText}```"
+
     try:
         import requests
-        response = requests.post(f"{server}/{topic}", data=ctx.encode('utf-8', headers=headers, timeout=10))
+        response = requests.post(f"{server}/{topic}", data=message.encode('utf-8'), headers=headers, timeout=10)
         if response.status_code == 200:
             print(f"LOG: ntfy notification sent to {topic}")
             return 0

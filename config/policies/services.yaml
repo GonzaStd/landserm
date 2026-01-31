@@ -1,17 +1,17 @@
-policy-name:
+usage:
   when:
     kind: "status"
     subject: "cron"
-    payload: {"active": "inactive"}
+    systemdInfo: 
+      active: "active"
+      memory_mb: "> 0.3"
   then:
       priority: "default"
       script: 
         name: "hello_world"
-        args: ["$domain", "$kind", "$subject", "$payload.active", "$payload.pid"]
+        args: ["$domain", "$kind", "$subject", "$systemdInfo.cpu_percent", "$systemdInfo.memory_mb"]
       log:
         enabled: true
-      oled:
-        message: "$subject $kind\n**$payload.active**\nCACA"
-        duration: 5
-      push:
-        methods: ["webhook", "ntfy"]
+      #oled:
+      #  message: "$subject uses $systemdInfo.cpu_percent% CPU\n$systemdInfo.memory_mb MB RAM"
+      #  duration: 5

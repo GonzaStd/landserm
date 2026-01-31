@@ -1,5 +1,6 @@
 from landserm.config.loader import loadConfig, resolveFilesPath, domains, domainsConfigPaths
 from landserm.core.actions import executeActions
+from landserm.core.events import Event
 
 policiesConfigPath = resolveFilesPath("/config/policies/", domains)
 
@@ -39,7 +40,7 @@ def policiesIndexation():
                         "when": {
                             "kind": "status",
                             "subject": "sshd",
-                            "payload": "stopped"
+                            "systemdInfo": {"active": "inactive"}
                         },
                         "then": {
                             "script": "start-ssh"
@@ -70,16 +71,28 @@ def process(events: list, policiesIndex: dict):
                 eventData, policyActions = result
                 executeActions(eventData, policyActions)
 
-def evaluate(policy: dict, event):
+def evaluate(policy: dict, event: Event):
     policyCondition = dict(policy["data"]["when"])
-    policyPayload = policyCondition.get("payload", {})
+    policySystemdInfo = policyCondition.get("systemdInfo", {})
     
     if policyCondition.get("subject") != event.subject:
         return 0
 
-    for key, value in policyPayload.items():
-        if event.payload.get(key) !=  value:
-            return 0
+    for key, value in policySystemdInfo.items():
+        eventValue = event.systemdInfo.get(key)
+        if isinstance(value, str) and value.strip():
+            value = value.strip()
+            operators = [">=", ">", "<=", "<"]
+            for op in operators:
+                if value.startswith(op):
+                    number = float(value.replace(op, "")) # Remove operator from string. Example: ">50" to "50"
+                    if eventValue is None:
+                        return 0
+                    if not eval(str(eventValue) + op + str(number)):
+                        return 0
+        else:
+            if eventValue != value:
+                return 0
     
     print("LOG: policy and event matches.")
 

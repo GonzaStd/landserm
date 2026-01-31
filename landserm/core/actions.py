@@ -6,7 +6,7 @@ from landserm.core.context import expand
 from landserm.core.events import Event
 
 scriptsPath = landsermRoot + "/config/scripts/"
-allowedVarsSet = {"domain", "kind", "subject", "payload"}
+allowedVarsSet = {"domain", "kind", "subject", "systemdInfo", "payload"}
 
 
 

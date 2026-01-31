@@ -17,10 +17,10 @@ def deliveryLog(eventData: Event, actionData: dict):
     
     logPath = actionData.get("path", f"{landsermRoot}/logs/landserm-{eventData.domain}.log")
 
-    if isinstance(eventData.payload, dict):
-        payload = json.dumps(eventData.payload, indent=2)
+    if isinstance(eventData.systemdInfo, dict):
+        systemdInfo = json.dumps(eventData.systemdInfo, indent=2)
     else:
-        payload = str(eventData.payload)
+        systemdInfo = str(eventData.systemdInfo)
     
     timestamp = datetime.now().strftime("%B %d, %y %H:%M:%S")
 
@@ -28,8 +28,8 @@ def deliveryLog(eventData: Event, actionData: dict):
 [{timestamp}] {eventData.domain.upper()} EVENT
   Kind:  {eventData.kind}
   Subject:  {eventData.subject}
-  Payload:
-  {payload}
+  systemdInfo:
+  {systemdInfo}
 {'='*50}
 """
     try:
@@ -215,7 +215,7 @@ class Push():
         self.domain = eventData.domain
         self.subject = eventData.subject
         self.kind = eventData.kind
-        self.payload = eventData.payload
+        self.systemdInfo = eventData.systemdInfo
 
         self.actionData = actionData
         self.priority = actionData.get("priority", "default")
@@ -229,19 +229,19 @@ class Push():
         self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain.capitalize()}"
         self.defaultBody = f"Priority: {self.priorText}\nEvent **{self.kind.upper()}** from **\"{self.subject}\"** service\n"
         self.payloadText = ""
-        if isinstance(self.eventData.payload, dict):
-            for key, value in self.payload.items():
+        if isinstance(self.eventData.systemdInfo, dict):
+            for key, value in self.systemdInfo.items():
                 self.payloadText += f"{key}: {value}\n"
         else:
-            message += f"{self.eventData.payload}"
+            message += f"{self.eventData.systemdInfo}"
         
         self.fields = []
         if self.name == "webhook":
-            if isinstance(self.payload, dict):
-                for key, value in self.payload.items():
+            if isinstance(self.systemdInfo, dict):
+                for key, value in self.systemdInfo.items():
                     self.fields.append({"name": key.capitalize(), "value": str(value), "inline": True})
             else:
-                self.fields.append({"name": "Payload", "value": str(value), "inline": False})
+                self.fields.append({"name": "systemdInfo", "value": str(value), "inline": False})
             
 
 

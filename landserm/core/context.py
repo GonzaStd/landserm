@@ -8,12 +8,12 @@ def expand(template: str, eventData: Event) -> str:
             result = result.replace(f"${var}", str(getattr(eventData, var, "")))
 
     import re
-    for match in re.finditer(r'\$payload\.(\w+)', result):
-        fullMatch = match.group(0)  # $payload.active
+    for match in re.finditer(r'\$systemdInfo\.(\w+)', result):
+        fullMatch = match.group(0)  # $sytemdInfo.active
         key = match.group(1)  # active
         
-        if isinstance(eventData.payload, dict):
-            value = eventData.payload.get(key, "")
+        if isinstance(eventData.systemdInfo, dict):
+            value = eventData.systemdInfo.get(key, "")
             result = result.replace(fullMatch, str(value))
     
     return result

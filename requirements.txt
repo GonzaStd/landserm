@@ -1,12 +1,21 @@
 cbor2==5.8.0
+certifi==2026.1.4
+charset-normalizer==3.4.4
 click==8.3.1
+cysystemd==2.0.1
 dbus-next==0.2.3
+idna==3.11
+-e git+https://github.com/GonzaStd/landserm@83a623fca81b823cc8a29a836bb7941c61d0a937#egg=landserm
 luma.core==2.5.3
 luma.oled==3.14.0
 markdown-it-py==4.0.0
 mdurl==0.1.2
 pillow==12.1.0
+psutil==7.2.2
 Pygments==2.19.2
+python-systemd==0.0.9
 PyYAML==6.0.3
+requests==2.32.5
 rich==14.2.0
 smbus2==0.6.0
+urllib3==2.6.3

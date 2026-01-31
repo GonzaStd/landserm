@@ -25,47 +25,53 @@ def getServicesStartData():
             check=True).stdout
 
 def getServiceDetails(service):
-    output = subprocess.run(["systemctl", "show", service, "--property=ActiveState,SubState,LoadState,Result,ExecMainStatus,MainPID"],
-            capture_output=True,
-            text=True)
-    payload = dict()
-    friendlyData = ["active", "substate", "load", "result", "exec_main", "pid"]
-    dbusProperties = {
-        "active": "ActiveState",
-        "substate": "SubState",
-        "load": "LoadState",
-        "result": "Result",
-        "exec_main": "ExecMainStatus",
-        "pid": "MainPID"
+    output = subprocess.run(
+        ["systemctl", "show", service, 
+         "--property=ActiveState,SubState,LoadState,Result,ExecMainStatus,MainPID,MemoryCurrent,CPUUsageNSec"],
+        capture_output=True,
+        text=True
+    )
+    
+    systemdInfo = {}
+    
+    propertyMap = {
+        "ActiveState": "active",
+        "SubState": "substate",
+        "LoadState": "load",
+        "Result": "result",
+        "ExecMainStatus": "exec_main",
+        "MainPID": "pid",
+        "MemoryCurrent": "memory_usage_mb",
+        "CPUUsageNSec": "cpu_usage_sec"
     }
-
-    resultData = dict()
+    
+    resultData = {}
     for line in output.stdout.strip().split('\n'):
         if '=' in line:
-            data = line.split('=', 1)
-            key = data[0]
-            value = data[1]
+            key, value = line.split('=', 1)
             resultData[key] = value
-    pid = -1
-    for fd in friendlyData:
-        rd = resultData.get(dbusProperties[fd])
-        if rd and rd.isdigit():
-            rd = int(rd)
-            if fd == "pid":
-                pid = rd
-        payload[fd] = rd
-
-    payload["cpu_percent"] = 0.0
-    payload["memory_mb"] = 0.0
-
-    if pid > 0:
-        try:
-            process = psutil.Process(pid)
-            payload["cpu_percent"] = round(process.cpu_percent(interval=0.1), 2)
-            payload["memory_mb"] = round(process.memory_info().rss / (1024 * 1024), 2)
-        except(psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
-    return payload
+    
+    # Mapear a nombres amigables
+    for dbusKey, friendlyKey in propertyMap.items():
+        value = resultData.get(dbusKey, "")
+        
+        if value.isdigit():
+            systemdInfo[friendlyKey] = int(value)
+        else:
+            systemdInfo[friendlyKey] = value
+    
+    if systemdInfo.get("memory_usage_mb"):
+        systemdInfo["memory_usage_mb"] = round(systemdInfo["memory_usage_mb"] / (1024 * 1024) , 2)
+    else:
+        systemdInfo["memory_usage_mb"] = 0.0
+    
+    if systemdInfo.get("cpu_usage_sec"):
+        systemdInfo["cpu_usage_sec"] = round(systemdInfo["cpu_usage_sec"] / 1_000_000_000, 2)
+    else:
+        systemdInfo["cpu_usage_sec"] = 0
+    
+    
+    return systemdInfo
 
 
 def getServices():

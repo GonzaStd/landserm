@@ -2,7 +2,7 @@ policy-name:
   when:
     kind:
     subject:
-    payload:
+    systemdInfo:
   then:
     action:
       delivery:

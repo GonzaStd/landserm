@@ -1,7 +1,8 @@
+# This will be necessary for version 2, because new domains handling will be added.
 import yaml
 from pathlib import Path
 from landserm.config.validators import isPath
-from landserm.config.schemas import delivery, network, policies, services, storage
+from landserm.config.schemas import delivery, network, policies, services, storage 
 
 landsermRoot = str(Path(__file__).resolve().parents[2])
 

@@ -1,8 +1,6 @@
 import re
 import asyncio
 import json
-from cysystemd.reader import JournalOpenMode, Rule
-from cysystemd.async_reader import AsyncJournalReader
 from dbus_next import Message
 from dbus_next.constants import MessageType, BusType
 from dbus_next.aio import MessageBus
@@ -69,27 +67,3 @@ async def listenDbusMessages(callback):
     bus.add_message_handler(handler)
 
     await bus.wait_for_disconnect()
-
-
-async def listenJournald(callback):
-    servicesConfig = loadConfig("services", domainsConfigPaths)
-    print("Config loaded:", servicesConfig)
-    selectedServices = list(servicesConfig.get("include"))
-    print("Selected services:", selectedServices)
-    
-    reader = AsyncJournalReader()
-    await reader.open(JournalOpenMode.SYSTEM)
-    
-    for service in selectedServices:
-        service = str(service)
-        if not service.endswith(".service"):
-            service = f"{service}.service"
-        print("Adding filter for:", service)
-        reader.add_filter(Rule("_SYSTEMD_UNIT", service))
-    
-    await reader.seek_tail()
-
-    print("Waiting for journal events...")
-    async for record in reader:
-        print(record.data)
-        await callback(record.data)

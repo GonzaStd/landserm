@@ -14,7 +14,7 @@ push:
   gotify:
     server: "https://localhost:8080"
     token: null # "TOKEN" if applies
-  webhook:
-    #url: "https://discord.com/api/webhooks/11111111/ANYYYYYYYYYYYYYYYYYYYYYYYYYY"
+  webhook: # This only works with discord webhook
+    url: "https://discord.com/api/webhooks/11111111/ANYYYYYYYYYYYYYYYYYYYYYYYYYY"
     headers:
-      Authorization: null #"Bearer TOKEN"  if applies
+      Authorization: null

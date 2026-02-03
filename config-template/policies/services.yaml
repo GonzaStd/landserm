@@ -1,0 +1,17 @@
+policy-name:
+  when:
+    kind: "status"
+    subject: "cron" # Example service. It is service name without `.service`
+    systemdInfo: 
+      active: "inactive"
+  then:
+      priority: "default"
+      script: 
+        name: "script-name"
+        args: ["$domain", "$subject", "$kind", "$systemdInfo.active", "$systemdInfo.substate"] # Example arguments
+      log:
+        enabled: true
+      push: ["ntfy", "webhook"]
+      oled:
+        message: "$domain | $subject\n $kind:\n $systemdInfo.active\n $systemdInfo.substate"
+        duration: 5

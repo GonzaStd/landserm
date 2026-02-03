@@ -1,12 +1,15 @@
 import asyncio
-from landserm.daemon.listeners import listenDbusMessages, listenJournald
-from landserm.observers.services import handleDbus, handleJournal
+from landserm.daemon.listeners import listenDbusMessages
+from landserm.observers.services import handleDbus
 
 async def startDaemon():
-    print("Deamon initialized")
+    print("LOG: Deamon initialized")
     await asyncio.gather(
-        listenDbusMessages(handleDbus),
-        listenJournald(handleJournal)
+        listenDbusMessages(handleDbus)
     )
-if __name__ == "__main__":
+
+def main():
     asyncio.run(startDaemon())
+
+if __name__ == "__main__":
+    main()

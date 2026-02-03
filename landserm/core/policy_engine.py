@@ -9,6 +9,7 @@ def policiesIndexation():
     index = dict()
     invalidPolicies = list() # A list of policy names that are incomplete/invalid
 
+    # This will be necessary for version 2 (I'm talking about using other domains)
     for domain in domains: # domains -> list of strings with the name of each domain.
 
         domainConfig = dict(loadConfig(domain, domainsConfigPaths))
@@ -30,28 +31,6 @@ def policiesIndexation():
                 "name": policyName,
                 "data": policyData
             })
-        """
-        index example:
-        `{
-        "service": {
-                "kind": [{
-                    "name": "never-stop-ssh", 
-                    "data": {
-                        "when": {
-                            "kind": "status",
-                            "subject": "sshd",
-                            "systemdInfo": {"active": "inactive"}
-                        },
-                        "then": {
-                            "script": "start-ssh"
-                        }
-                    }
-                }]
-            },
-        }
-        `
-        
-        """
 
     return index, invalidPolicies
         

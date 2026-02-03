@@ -41,7 +41,7 @@ lastState = dict().fromkeys(servicesConfig.get("include"))
 initialStates = checkStatus(servicesConfig) # Events with systemdInfo from both interfaces
 for event in initialStates:
     lastState[event.subject] = event.systemdInfo
-print("INITIAL STATES", lastState)
+print("LOG: INITIAL STATES:", lastState)
 policiesIndex, _ = policiesIndexation()
 process(initialStates, policiesIndex)
 def handleDbus(msg):
@@ -94,9 +94,3 @@ def handleDbus(msg):
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
         policiesIndex, _ = policiesIndexation()
         process([event], policiesIndex)
-
-def handleJournal(entry):
-    print("handle journal entry:", entry)
-    for k, v in entry.items():
-        print(f"{k}: {v}")
-    print("New event in journal:", entry.get('MESSAGE', ''), entry.get('_SYSTEMD_UNIT', ''))

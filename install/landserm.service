@@ -1,0 +1,25 @@
+[Unit]
+Description=Landserm daemon
+After=network.target dbus.service
+Wants=dbus.service
+
+[Service]
+Type=simple
+User=landserm
+Group=landserm
+WorkingDirectory=/opt/landserm
+ExecStart=/usr/local/bin/landserm-daemon
+Restart=on-failure
+RestartSec010
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=landserm
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/landserm/logs /var/log/landserm
+
+[Install]
+WantedBy=multi-user.target

@@ -6,7 +6,7 @@ def isPath(value: str):
     if (os.path.exists(value)):
         return True
 
-def isPartuuid(value: str):
+def isPartuuid(value: str): # Unused (wait for v2)
     partuuids = getPartuuid()
     return (value in partuuids)
     

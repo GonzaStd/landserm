@@ -44,8 +44,6 @@ def driverOLED(name: str, config: dict):
     from luma.core.error import DeviceNotFoundError
     try:
         from luma.core.interface.serial import i2c, spi
-        from luma.core.render import canvas
-        from PIL import ImageFont, ImageDraw
     except ImportError:
         print("ERROR: luma.oled is not installed. Install `luma.oled` and `pillow` with pip inside the .venv")
         return None

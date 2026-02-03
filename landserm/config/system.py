@@ -1,6 +1,6 @@
 import subprocess, psutil
 
-def getPartuuid():
+def getPartuuid(): # Unused (wait for v2)
     result =    subprocess.run(
                 ["lsblk", "-n", "-o", "PARTUUID"],
                 capture_output=True,
@@ -12,7 +12,7 @@ def getPartuuid():
     return partuuids
 
 
-def getPartitions():
+def getPartitions(): # Unused (wait for v2)
     return subprocess.run(["lsblk", "-o", "NAME,SIZE,PARTUUID,MOUNTPOINTS"],
             capture_output=True,
             text=True,

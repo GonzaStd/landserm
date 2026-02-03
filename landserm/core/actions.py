@@ -20,8 +20,6 @@ def execScript(eventData: Event, actionData: dict):
         print("LOG: Invalid path or script", scriptName, "does not exist.")
         return 1
     
-    arguments = list(actionData.get("args")) if "args" in actionData else False
-
     validArguments = list()
     for arg in actionData.get("args", []):
         expanded = expand(str(arg), eventData)

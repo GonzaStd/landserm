@@ -2,8 +2,6 @@
 import yaml
 from pathlib import Path
 from landserm.config.validators import isPath
-from landserm.config.schemas import delivery, network, policies, services, storage 
-
 landsermRoot = str(Path(__file__).resolve().parents[2])
 
 def resolveFilesPath(base: str, fileNames: list):
@@ -37,18 +35,8 @@ domains = ["network", "services", "storage"]
 domainsConfigPaths = resolveFilesPath("/config/domains/", domains)
 def loadConfig(name: str, configPaths: dict) -> dict:
     with open(configPaths[name]) as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) # -> configData
 
 def saveConfig(name, configPaths, configData):
     with open(configPaths[name], "w") as f:
         yaml.safe_dump(configData, f)
-
-def getSchema(name):
-    switch = {
-        "delivery": delivery.schema,
-        "network": network.schema,
-        "policies": policies.schema,
-        "services": services.schema,
-        "storage": storage.schema
-    }
-    return switch.get(name) 

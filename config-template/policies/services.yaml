@@ -1,11 +1,12 @@
 policy-name:
+  enabled: true
+  priority: "high"
   when:
     kind: "status"
     subject: "cron" # Example service. It is service name without `.service`
     systemdInfo: 
       active: "inactive"
   then:
-      priority: "default"
       script: 
         name: "script-name"
         args: ["$domain", "$subject", "$kind", "$systemdInfo.active", "$systemdInfo.substate"] # Example arguments

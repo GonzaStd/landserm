@@ -48,7 +48,7 @@ class ThenBase(BaseModel):
 class Policy(BaseModel):
     enabled: bool
     priority: Optional[Literal["low", "default", "high", "urgent"]] = "default"
-    when: WhenBase
+    when: WhenServices
     then : ThenBase
 
 class PoliciesConfig(BaseModel):

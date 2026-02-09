@@ -23,12 +23,5 @@ def selectDomain(domain):
     if not domainClass:
         raise ValueError(f"Unknown domain: {domain}")
     
-    domainsConfig = type(
-        "DomainsConfig",
-        (BaseModel,),
-        {
-            "__annotations__": {"policies": Dict[str, domainClass]},
-            "policies": Field(default_factory=dict)
-        }
-    )
-    return domainsConfig
+    
+    return domainClass

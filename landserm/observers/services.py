@@ -34,7 +34,7 @@ def checkStatus(servicesConfig: ServicesConfig):
             events.append(event)
     return events
 
-servicesConfig = ServicesConfig(loadConfig("domains", domain="services"))
+servicesConfig = loadConfig("domains", domain="services")
 
 lastSystemdInfo = {service: {"status":{}, "auto_start": None} for service in servicesConfig.include}
 initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # Events with systemdInfo from both interfaces

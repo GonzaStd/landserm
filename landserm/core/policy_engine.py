@@ -20,12 +20,13 @@ def policiesIndexation() -> dict:
         domainPolicyConfig = loadConfig("policies", domain)
         domainPolicies = domainPolicyConfig.policies
 
+        index.setdefault(domain, dict())
+
         for policyName, policyModel in domainPolicies.items(): # (name, domainsPolicy object)
             kind = policyModel.when.kind
             if not kind or not policyModel.then:
                 continue
 
-            index.setdefault(domain, dict())
             index[domain].setdefault(kind, list())
 
             index[domain][kind].append({
@@ -40,8 +41,13 @@ def policiesIndexation() -> dict:
 def process(domainsEvents: list[Event], policiesIndex: dict):
     """Run by observers after indexation"""
     for event in domainsEvents:
-        domainIndex = dict(policiesIndex.get(event.domain))
-        kindPolicies = list(domainIndex.get(event.kind))
+        domainIndex = policiesIndex.get(event.domain, {})
+        if not domainIndex:
+            continue
+            
+        kindPolicies = domainIndex.get(event.kind, [])
+        if not kindPolicies:
+            continue
 
         for policyNameAndData in kindPolicies:
             policyNameAndData = dict(policyNameAndData) # Dict with name and data keys.

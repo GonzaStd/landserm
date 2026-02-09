@@ -63,7 +63,7 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
             print(f"WARNING: {file} is not in path: {configFolderPath}")
     return filesPath
         
-domainNames = ["network", "services", "storage"]
+domainNames = ["services"]
 
 def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]:
 

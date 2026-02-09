@@ -7,14 +7,14 @@ oled:
   font_size: 11
 
 push:
-  enabled: true
   ntfy:
+    enabled: true
     server: "https://ntfy.sh"
-    auth: null
   gotify:
+    enabled: false
     server: "https://localhost:8080"
-    token: null # "TOKEN" if applies
-  webhook: # This only works with discord webhook
-    url: "https://discord.com/api/webhooks/11111111/ANYYYYYYYYYYYYYYYYYYYYYYYYYY"
-    headers:
-      Authorization: null
+  webhook:
+    enabled: true
+
+logs:
+  enabled: true

@@ -2,8 +2,12 @@ import json
 import threading, time
 from queue import Queue
 from datetime import datetime, timezone
+from luma.oled.device import ssd1306, sh1106, ssd1331
+from typing import Union
 from landserm.config.loader import landsermRoot
-from landserm.config.loader import loadConfig, resolveFilesPath
+from landserm.config.loader import loadConfig, resolveConfigPath
+from landserm.config.schemas.policies import ThenBase, OledAction
+from landserm.config.schemas.delivery import ConfigPush, ConfigOled
 from landserm.core.context import expand
 from landserm.core.events import Event
 
@@ -11,36 +15,38 @@ oledQueue = Queue()
 oledWorker = None
 oledDevice = None
 
-def deliveryLog(eventData: Event, actionData: dict):
-    if not actionData.get("enabled"):
+def deliveryLog(eventData: Event, policyActionData: ThenBase):
+    policyLogData = policyActionData.log
+    if not bool(policyLogData.enabled):
         return 0
     
-    logPath = actionData.get("path", f"{landsermRoot}/logs/landserm-{eventData.domain}.log")
-
-    if isinstance(eventData.systemdInfo, dict):
-        systemdInfo = json.dumps(eventData.systemdInfo, indent=2)
-    else:
-        systemdInfo = str(eventData.systemdInfo)
-    
     timestamp = datetime.now().strftime("%B %d, %y %H:%M:%S")
-
     logMessage = f"""
-[{timestamp}] {eventData.domain.upper()} EVENT
-  Kind:  {eventData.kind}
-  Subject:  {eventData.subject}
-  systemdInfo:
-  {systemdInfo}
-{'='*50}
-"""
-    try:
-        with open(logPath, "a") as logFile:
-            logFile.write(logMessage)
-        print(f"LOG: Written to {logPath}")
-    except PermissionError:
-        print(f"ERROR: No permission to write to {logPath}. Change permissions or change to an allowed path.\
-               You can skip \"path\" in config and it will use the default path: {landsermRoot}/logs/landserm-{eventData.domain}.log")
+                [{timestamp}] {eventData.domain.upper()} EVENT
+                Kind:  {eventData.kind}
+                Subject:  {eventData.subject}
+                """
+    if eventData.systemdInfo:
+        if isinstance(eventData.systemdInfo, dict):
+            systemdInfo = json.dumps(eventData.systemdInfo, indent=2)
+        else:
+            systemdInfo = str(eventData.systemdInfo)
+        logMessage = logMessage + \
+        f"""  systemdInfo:
+            {systemdInfo}
+            {'='*50}
+        """
         
-def driverOLED(name: str, config: dict):
+
+    try:
+        folderPath = policyLogData.folder_path
+        with open(folderPath + f"landserm-{eventData.domain}.log", "a") as logFile:
+            logFile.write(logMessage)
+        print(f"LOG: Written to {folderPath}")
+    except PermissionError:
+        print(f"ERROR: No permission to write to {folderPath}. Change permissions or change to an allowed path.")
+        
+def driverOLED(name: str) -> Union[ssd1331, sh1106, ssd1331]:
     from luma.core.error import DeviceNotFoundError
     try:
         from luma.core.interface.serial import i2c, spi
@@ -48,28 +54,27 @@ def driverOLED(name: str, config: dict):
         print("ERROR: luma.oled is not installed. Install `luma.oled` and `pillow` with pip inside the .venv")
         return None
     
-    width = config.get("width", 128)
-    height = config.get("height", 64)
-    port = config.get("port", 1)
-    address = config.get("address", 0x3C)
+    oledConfig = loadConfig("delivery").oled
+    
+    width = oledConfig.width
+    height = oledConfig.height
+    port = oledConfig.port
+    address = oledConfig.address
 
     device = None
     try:
         if name == "ssd1306":
-            from luma.oled.device import ssd1306
             serial = i2c(port=port, address=address)
             device = ssd1306(serial, width=width, height=height)
         
         elif name == "sh1106":
-            from luma.oled.device import sh1106
             serial = i2c(port=port, address=address)
             device = sh1106(serial, width=width, height=height)
         
         elif name == "ssd1331":
-            from luma.oled.device import ssd1331
             # SSD1331 typically uses SPI, not I2C
-            spi_port = config.get("spi_port", 0)
-            spi_device = config.get("spi_device", 0)
+            spi_port = 0
+            spi_device = 0
             serial = spi(port=spi_port, device=spi_device)
             device = ssd1331(serial, width=width, height=height)
 
@@ -82,7 +87,7 @@ def driverOLED(name: str, config: dict):
 
     return device
 
-def oledWorkerThread(device, fontSize):
+def oledWorkerThread(device: Union[ssd1331, sh1106, ssd1331], fontSize: int):
     from luma.core.render import canvas
     from PIL import ImageFont
     import re
@@ -148,64 +153,38 @@ def oledWorkerThread(device, fontSize):
 
         oledQueue.task_done()
 
-def deliveryOLED(eventData: Event, actionData: dict):
+def deliveryOLED(eventData: Event, policyActionData: ThenBase):
     global oledWorker, oledDevice
 
-    oledConfig = loadConfig("delivery", resolveFilesPath(f"{landsermRoot}/config" , ["delivery"])).get("oled", {})
+    policyOledData = policyActionData.oled
 
-    if not oledConfig.get("enabled", False):
+    oledConfig = loadConfig("delivery").oled
+    if not bool(oledConfig.enabled):
         return 0
     
-    messageTemplate = actionData.get("message", "Subject:$subject\nKind:$kind")
+    messageTemplate = policyOledData.message
     message = expand(messageTemplate, eventData)
 
     if oledDevice is None:
-        driver = oledConfig.get("driver")
-        oledDevice = driverOLED(driver, oledConfig)
+        driver = oledConfig.driver
+        oledDevice = driverOLED(driver)
         if not oledDevice:
             return 1
 
     if oledWorker is None:
-        fontSize = oledConfig.get("font_size", 12)
+        fontSize = oledConfig.font_size
         oledWorker = threading.Thread(target=oledWorkerThread, args=(oledDevice, fontSize), daemon=True)
         oledWorker.start()
 
-    duration = actionData.get("duration", 5)
+    duration = policyOledData.duration
     oledQueue.put((message, duration))
     print(f"LOG: OLED message queued")
 
-DOMAIN_HEADERS = ["color", "emoji"]
-DOMAINS = {
-    "services": [4250465, "⚙️"],      # #40DB61 green
-    "network": [5418066, "🌐"],       # #52A9DB blue
-    "storage": [14368850, "💾"],      # #DB4052 red
-    "custom": [14398272, "📢"]        # #DBB740 yellow
-}
-
-PRIORITY_HEADERS = ["emoji", "text"]
-PRIORITIES = {
-    "low": ["ℹ️", "Low"],
-    "default": ["⚠️", "Normal"],
-    "high": ["🔴", "High"],
-    "urgent": ["🚨", "Urgent"]
-}
-
-def getData(name: str, property: str):
-    if name in DOMAINS.keys():
-        index = DOMAIN_HEADERS.index(property)
-        return DOMAINS[name][index]
-    
-    elif name in PRIORITIES.keys():
-        index = PRIORITY_HEADERS.index(property)
-        return PRIORITIES[name][index]
-
-
-
 class Push():
-    def __init__(self, eventData: Event, actionData: dict, nameMethod: str):
+    def __init__(self, eventData: Event, policyActionData: ThenBase, nameMethod: str):
         
-        self.deliveryConfig = resolveFilesPath(base=f"{landsermRoot}/config", fileNames=["delivery"])
-        self.config = loadConfig(name="delivery", configPaths=self.deliveryConfig).get("push").get(nameMethod)
+        self.configPath = resolveConfigPath("delivery")
+        self.config = loadConfig("delivery").push
         
         self.name = nameMethod
 
@@ -215,8 +194,8 @@ class Push():
         self.kind = eventData.kind
         self.systemdInfo = eventData.systemdInfo
 
-        self.actionData = actionData
-        self.priority = actionData.get("priority", "default")
+        self.policyActionData = policyActionData
+        self.priority = policyActionData.priority
 
         self.domainEmoji = getData(self.domain,"emoji")
         self.domainColor = getData(self.domain,"color")
@@ -227,11 +206,12 @@ class Push():
         self.defaultTitle = f"{self.priorEmoji} | {self.domainEmoji} {self.domain.capitalize()}"
         self.defaultBody = f"Priority: {self.priorText}\nEvent **{self.kind.upper()}** from **\"{self.subject}\"** service\n"
         self.payloadText = ""
+
         if isinstance(self.eventData.systemdInfo, dict):
             for key, value in self.systemdInfo.items():
                 self.payloadText += f"{key}: {value}\n"
         else:
-            message += f"{self.eventData.systemdInfo}"
+            self.payloadText += f"{self.eventData.systemdInfo}"
         
         self.fields = []
         if self.name == "webhook":
@@ -243,9 +223,9 @@ class Push():
             
 
 
-def deliveryPush(eventData: Event, actionData: dict):
+def deliveryPush(eventData: Event, policyActionData: ThenBase):
     nameMethods = ["ntfy", "gotify", "webhook"]
-    selectedMethods = actionData.get("methods")
+    selectedMethods = policyActionData.push # push methods
 
     functionMethods = {
         "ntfy": Notify,
@@ -257,18 +237,17 @@ def deliveryPush(eventData: Event, actionData: dict):
             if not method in nameMethods:
                 print(f"WARNING: Bad policy configuration, method {method} doesn't exist. Skipping method.")
                 continue
-            methodInstance = Push(eventData, actionData, method)
-            if methodInstance.deliveryConfig.get("enabled", False):
-                print(f"LOG: Policy calls the next push methods: {selectedMethods} but push is disabled in config/delivery.yaml")
-                return 1
+            methodInstance = Push(eventData, policyActionData, method)
+            if not getattr(methodInstance.config, method).enabled:
+                print(f"LOG: Policy calls the next push method: {method} but it is disabled in your config delivery.yaml")
             functionMethods[method](methodInstance)
 
 def Notify(ctx: Push):
-
-    configNotify = ctx.config
-    server = configNotify.get("server", False)
-    topic = configNotify.get("topic", f"landserm-{ctx.domain}")
-    auth = configNotify.get("auth", None)
+    configNotify = ctx.config.ntfy
+    if not configNotify.enabled:
+        return 0
+    server = configNotify.server
+    topic = f"landserm-{ctx.domain}"
     
     if not server:
         print("ERROR: ntfy server not configured. Skipping notify.")
@@ -294,9 +273,6 @@ def Notify(ctx: Push):
         "Tags": f"{domainTags.get(ctx.domain, 'bell')},{priorityTags.get(ctx.priority, 'warning')}",
         "Markdown": "yes"
     }
-
-    if auth:
-        headers["Authorization"] = f"Bearer {auth}"
     
     message=f"{ctx.defaultBody}\n\nInformation:\n```{ctx.payloadText}```"
 
@@ -313,8 +289,11 @@ def Notify(ctx: Push):
         return 1
     
 def Gotify(ctx: Push):
-    server = ctx.config.get("server")
-    token = ctx.config.get("token")
+    configGotify = ctx.config.gotify
+    if not configGotify.enabled:
+        return 0
+    server = configGotify.server
+    token = configGotify.app_token
 
     if not server or not token:
         print("ERROR: Gotify server and/or token not configured. Skipping.")
@@ -339,9 +318,34 @@ def Gotify(ctx: Push):
     except Exception as e:
         print(f"ERROR: Gotify request failed: {e}")
 
+DOMAIN_HEADERS = ["color", "emoji"]
+DOMAINS = {
+    "services": [4250465, "⚙️"],      # #40DB61 green
+    "network": [5418066, "🌐"],       # #52A9DB blue
+    "storage": [14368850, "💾"],      # #DB4052 red
+    "custom": [14398272, "📢"]        # #DBB740 yellow
+}
+
+PRIORITY_HEADERS = ["emoji", "text"]
+PRIORITIES = {
+    "low": ["ℹ️", "Low"],
+    "default": ["⚠️", "Normal"],
+    "high": ["🔴", "High"],
+    "urgent": ["🚨", "Urgent"]
+}
+
+def getData(name: str, property: str):
+    if name in DOMAINS.keys():
+        index = DOMAIN_HEADERS.index(property)
+        return DOMAINS[name][index]
+    
+    elif name in PRIORITIES.keys():
+        index = PRIORITY_HEADERS.index(property)
+        return PRIORITIES[name][index]
+    
 def Webhook(ctx: Push):
-    url = ctx.config.get("url")
-    headers = ctx.config.get("headers", {})
+    configWebhook = ctx.config.webhook
+    url = configWebhook.url
 
     if not url:
         print("ERROR: Webhook URL not configured")
@@ -363,8 +367,6 @@ def Webhook(ctx: Push):
     }
 
     requestHeaders = {"Content-Type": "application/json"}
-    if headers:
-        requestHeaders.update({key: value for key, value in headers.items()})
     
     try:
         import requests

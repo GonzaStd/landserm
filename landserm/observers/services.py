@@ -3,11 +3,12 @@ from landserm.config.validators import isService
 from landserm.core.events import Event
 from landserm.daemon.listeners import unescape_unit_filename
 from landserm.core.policy_engine import process, policiesIndexation
-from landserm.config.loader import loadConfig, domainsConfigPaths
+from landserm.config.loader import loadConfig
+from landserm.config.schemas.domains import ServicesConfig
 
-def checkAutoStart(servicesConfig):
+def checkAutoStart(servicesConfig: ServicesConfig):
     servicesData = getServicesStartData()
-    targetServices = list(servicesConfig["include"])
+    targetServices = list(servicesConfig.include)
     targetAutoStarts = dict.fromkeys(targetServices)
     events = list()
     for line in servicesData.splitlines():
@@ -15,19 +16,16 @@ def checkAutoStart(servicesConfig):
             continue
         unitName = line.split()[0]
         if unitName in targetServices:
+            tService = unitName
             state = line.split()[1]
             targetAutoStarts[unitName] = state
             targetServices.remove(unitName)
-            event = Event("services", "auto_start", unitName, state)
+            event = Event("services", "auto_start", tService, state)
             events.append(event)
-    for missing in targetServices:
-        event = Event("services", "auto_start", missing, "missing")
-        events.append(event)
-    
     return events
 
-def checkStatus(servicesConfig):
-    targetServices = list(servicesConfig["include"])
+def checkStatus(servicesConfig: ServicesConfig):
+    targetServices = servicesConfig.include
     events = list()
     for tService in targetServices:
         if isService(tService):
@@ -36,14 +34,17 @@ def checkStatus(servicesConfig):
             events.append(event)
     return events
 
-servicesConfig = loadConfig("services", domainsConfigPaths)
-lastState = dict().fromkeys(servicesConfig.get("include"))
-initialStates = checkStatus(servicesConfig) # Events with systemdInfo from both interfaces
+servicesConfig = ServicesConfig(loadConfig("domains", domain="services"))
+
+lastSystemdInfo = {service: {"status":{}, "auto_start": None} for service in servicesConfig.include}
+initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # Events with systemdInfo from both interfaces
 for event in initialStates:
-    lastState[event.subject] = event.systemdInfo
-print("LOG: INITIAL STATES:", lastState)
-policiesIndex, _ = policiesIndexation()
+    lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
+
+print("LOG: INITIAL STATES:", lastSystemdInfo)
+policiesIndex = policiesIndexation()
 process(initialStates, policiesIndex)
+
 def handleDbus(msg):
     # msg has properties like path, interface, member, body, etc.
     path = msg.path
@@ -72,7 +73,7 @@ def handleDbus(msg):
             if dProperty in changed:
                 partialPayload[fProperty] = changed[dProperty].value
 
-        lastStatePayload = lastState.get(unit_name, dict())
+        lastStatePayload = lastSystemdInfo[unit_name].get("status", dict()) # For now it only works with "status" kind.
         systemdInfo = {**lastStatePayload, **partialPayload} # Merged payload
         
         if lastStatePayload == systemdInfo: # Only work if some property has changed
@@ -87,10 +88,10 @@ def handleDbus(msg):
         
         if not significant_changed:
             # Update lastState but don't trigger event
-            lastState[unit_name] = systemdInfo
+            lastSystemdInfo[unit_name] = systemdInfo
             return
         
-        lastState[unit_name] = systemdInfo 
+        lastSystemdInfo[unit_name] = systemdInfo 
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
-        policiesIndex, _ = policiesIndexation()
+        policiesIndex = policiesIndexation()
         process([event], policiesIndex)

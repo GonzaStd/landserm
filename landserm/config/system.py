@@ -59,14 +59,16 @@ def getServiceDetails(service):
             systemdInfo[friendlyKey] = int(value)
         else:
             systemdInfo[friendlyKey] = value
-    
-    if systemdInfo.get("memory_usage_mb"):
-        systemdInfo["memory_usage_mb"] = round(int(systemdInfo["memory_usage_mb"]) / (1024 * 1024) , 2)
+
+    isActive = systemdInfo.get("active") == "active"
+
+    if isActive and systemdInfo.get("memory_usage_mb"):
+        systemdInfo["memory_usage_mb"] = round(systemdInfo["memory_usage_mb"] / (1024 * 1024) , 2)
     else:
         systemdInfo["memory_usage_mb"] = 0.0
     
-    if systemdInfo.get("cpu_usage_sec"):
-        systemdInfo["cpu_usage_sec"] = round(int(systemdInfo["cpu_usage_sec"]) / 1_000_000_000, 2)
+    if isActive and systemdInfo.get("cpu_usage_sec"):
+        systemdInfo["cpu_usage_sec"] = round(systemdInfo["cpu_usage_sec"] / 1_000_000_000, 2)
     else:
         systemdInfo["cpu_usage_sec"] = 0
     

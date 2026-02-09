@@ -62,10 +62,15 @@ def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], i
     policyModel = policy["data"]
     policyCondition = policyModel.when
     
+    print(f"LOG: Evaluating policy '{policy['name']}' for event {event.subject}")
+    
     if policyCondition.subject != event.subject:
+        print(f"LOG: Subject mismatch: policy expects '{policyCondition.subject}', event has '{event.subject}'")
         return 0
 
     policySystemdInfo = policyCondition.systemdInfo
+    
+    print(f"LOG: Checking systemdInfo conditions: {policySystemdInfo.model_fields_set}")
     
     for fieldName in policySystemdInfo.model_fields_set:
         fieldValue = getattr(policySystemdInfo, fieldName)
@@ -74,6 +79,7 @@ def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], i
             continue
             
         eventValue = event.systemdInfo.get(fieldName) if isinstance(event.systemdInfo, dict) else None
+        print(f"LOG: Comparing field '{fieldName}': policy expects '{fieldValue}', event has '{eventValue}'")
         
         if isinstance(fieldValue, str) and fieldValue.strip():
             value = fieldValue.strip()

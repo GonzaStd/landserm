@@ -88,10 +88,11 @@ def handleDbus(msg):
         
         if not significant_changed:
             # Update lastState but don't trigger event
-            lastSystemdInfo[unit_name] = systemdInfo
+            lastSystemdInfo[unit_name]["status"] = systemdInfo
             return
         
-        lastSystemdInfo[unit_name] = systemdInfo 
+        lastSystemdInfo[unit_name]["status"] = systemdInfo 
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
+        print(f"LOG: Event triggered for {unit_name}: {systemdInfo}")
         policiesIndex = policiesIndexation()
         process([event], policiesIndex)

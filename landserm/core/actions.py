@@ -1,6 +1,7 @@
 import subprocess
 from landserm.config.loader import landsermRoot
 from landserm.config.validators import isPath
+from landserm.config.schemas.policies import ThenBase, ScriptAction
 from landserm.core.delivery import deliveryLog, deliveryOLED, deliveryPush
 from landserm.core.context import expand
 from landserm.core.events import Event
@@ -10,8 +11,8 @@ allowedVarsSet = {"domain", "kind", "subject", "systemdInfo", "payload"}
 
 
 
-def execScript(eventData: Event, actionData: dict):
-    scriptName = str(actionData.get("name"))
+def execScript(eventData: Event, scriptData: ScriptAction):
+    scriptName = str(scriptData.name)
     if not scriptName.endswith(".sh"):
         scriptName += ".sh"
 
@@ -21,7 +22,7 @@ def execScript(eventData: Event, actionData: dict):
         return 1
     
     validArguments = list()
-    for arg in actionData.get("args", []):
+    for arg in scriptData.args:
         expanded = expand(str(arg), eventData)
         validArguments.append(expanded)
    
@@ -34,10 +35,12 @@ supportedActions = {
      "oled": deliveryOLED,
      "push": deliveryPush
 }
-def executeActions(eventData: Event, allActions: dict):
-        for action in allActions:
-            if not action in supportedActions:
-                 continue
-            actionData = allActions[action]
-            print("LOG: executing action", action)
-            supportedActions[action](eventData, actionData)
+def executeActions(eventData: Event, policyActions: ThenBase):
+    actionsDict = policyActions.model_dump(exclude_none=True)
+
+    for actionName, actionData in actionsDict.items():
+        if actionName not in supportedActions:
+                print(f"WARNING: Unknown action '{actionName}'. Skipping.")
+                continue
+        print("LOG: executing action", actionName)
+        supportedActions[actionName](eventData, actionData)

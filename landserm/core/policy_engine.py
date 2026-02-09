@@ -65,39 +65,45 @@ def process(domainsEvents: list[Event], policiesIndex:
                 validatedEvent, policyActions = match
                 executeActions(validatedEvent, policyActions)
 
-def evaluateMatch(policy: dict[
-                (str, str), # "name": policyName
-                (str, domainsPolicy) # "data": policyModel -> when: dict, then: dict
-                ], 
-                event: Event) -> Union[Event, ThenBase]: 
+def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], int]: 
+    policyModel = policy["data"]
+    policyCondition = policyModel.when
     
-    # Evaluates if policy and event matches
-    policyCondition = dict(domainsPolicy(policy["data"]).when)
-    policySystemdInfo = dict(policyCondition.get("systemdInfo"))
-    
-    if policyCondition.get("subject") != event.subject:
+    if policyCondition.subject != event.subject:
         return 0
 
-    if policySystemdInfo:
-        for key, value in policySystemdInfo.items():
-            eventValue = dict(event.systemdInfo).get(key)
-            if isinstance(value, str) and value.strip():
-                value = value.strip()
-                operators = [">=", ">", "<=", "<"]
-                for op in operators:
-                    if value.startswith(op):
-                        number = float(value.replace(op, "")) # Remove operator from string. Example: ">50" to "50"
-                        if eventValue is None:
-                            return 0
-                        if not eval(str(eventValue) + op + str(number)):
-                            return 0
+    policySystemdInfo = policyCondition.systemdInfo
+    
+    for fieldName in policySystemdInfo.model_fields_set:
+        fieldValue = getattr(policySystemdInfo, fieldName)
+
+        if fieldValue is None:
+            continue
+            
+        eventValue = event.systemdInfo.get(fieldName) if isinstance(event.systemdInfo, dict) else None
+        
+        if isinstance(fieldValue, str) and fieldValue.strip():
+            value = fieldValue.strip()
+            operators = [">=", ">", "<=", "<"]
+            for op in operators:
+                if value.startswith(op):
+                    number = float(value.replace(op, "")) # Remove operator from string. Example: ">50" to "50"
+                    if eventValue is None:
+                        return 0
+                    if not eval(str(eventValue) + op + str(number)):
+                        return 0
+                    break
             else:
-                if eventValue != value:
+                # No operator found, exact match
+                if eventValue != fieldValue:
                     return 0
+        else:
+            if eventValue != fieldValue:
+                return 0
     
     print("LOG: policy and event matches.")
 
-    policyActions = ThenBase(policy["data"]["then"])
+    policyActions = policyModel.then
 
-    return event, policyActions # This is for actions.py
+    return event, policyActions
 

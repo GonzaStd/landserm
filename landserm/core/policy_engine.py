@@ -4,16 +4,11 @@ from landserm.core.events import Event
 from typing import Union
 from landserm.config.schemas.policies import domainsPolicy, ThenBase
 
-def policiesIndexation() -> \
-        dict[ 
-            str[ # domain
-                list[ #kind
-                    (str, str), # "name": policyName
-                    (str, domainsPolicy) # "data": policyModel
-                    ]   
-                ]   
-            ]:
-    
+def policiesIndexation() -> dict:
+    """
+    Returns index structure: 
+    {domain: {kind: [{"name": policyName, "data": policyModel}, ...]}}
+    """
     index = dict()
 
     # This will be necessary for version 2 (I'm talking about using other domains)
@@ -42,16 +37,8 @@ def policiesIndexation() -> \
         
 # It will run something like this: process(scan(), policiesIndexation())
 
-def process(domainsEvents: list[Event], policiesIndex:
-        dict[ 
-            str[ # domain
-                list[ #kind
-                    (str, str), # "name": policyName
-                    (str, domainsPolicy) # "data": policyModel
-                    ]   
-                ]   
-            ]
-    ): # Run by observers after indexation
+def process(domainsEvents: list[Event], policiesIndex: dict):
+    """Run by observers after indexation"""
     for event in domainsEvents:
         domainIndex = dict(policiesIndex.get(event.domain))
         kindPolicies = list(domainIndex.get(event.kind))

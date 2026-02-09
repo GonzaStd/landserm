@@ -1,81 +1,103 @@
-from landserm.config.loader import loadConfig, resolveFilesPath, domains, domainsConfigPaths
+from landserm.config.loader import loadConfig, domainNames
 from landserm.core.actions import executeActions
 from landserm.core.events import Event
+from typing import Union
+from landserm.config.schemas.policies import domainsPolicy, ThenBase
 
-policiesConfigPath = resolveFilesPath("/config/policies/", domains)
-
-
-def policiesIndexation():
+def policiesIndexation() -> \
+        dict[ 
+            str[ # domain
+                list[ #kind
+                    (str, str), # "name": policyName
+                    (str, domainsPolicy) # "data": policyModel
+                    ]   
+                ]   
+            ]:
+    
     index = dict()
-    invalidPolicies = list() # A list of policy names that are incomplete/invalid
 
     # This will be necessary for version 2 (I'm talking about using other domains)
-    for domain in domains: # domains -> list of strings with the name of each domain.
-
-        domainConfig = dict(loadConfig(domain, domainsConfigPaths))
-        if (not domainConfig.get("enabled")): # If domain is disabled, do not check its policies.
+    for domain in domainNames: # domains -> list of strings with the name of each domain.
+        domainConfig = loadConfig("domains", domain)
+        if not domainConfig.enabled: # If domain is disabled, do not check its policies.
             continue
 
-        domainPolicies = dict(loadConfig(domain, policiesConfigPath))
+        domainPolicyConfig = loadConfig("policies", domain)
+        domainPolicies = domainPolicyConfig.policies
 
-        for policyName, policyData in domainPolicies.items():
-            kind = policyData["when"].get("kind")
-
-            if not kind or not policyData["then"]:
-                invalidPolicies.append(policyName)
+        for policyName, policyModel in domainPolicies.items(): # (name, domainsPolicy object)
+            kind = policyModel.when.kind
+            if not kind or not policyModel.then:
                 continue
 
             index.setdefault(domain, dict())
             index[domain].setdefault(kind, list())
+
             index[domain][kind].append({
                 "name": policyName,
-                "data": policyData
+                "data": policyModel
             })
 
-    return index, invalidPolicies
+    return index
         
 # It will run something like this: process(scan(), policiesIndexation())
 
-def process(events: list, policiesIndex: dict):
-    for event in events:
-        domainIndex = policiesIndex.get(event.domain, dict()) # This is a dict
-        candidatePolicies = domainIndex.get(event.kind, list()) # This is a list
+def process(domainsEvents: list[Event], policiesIndex:
+        dict[ 
+            str[ # domain
+                list[ #kind
+                    (str, str), # "name": policyName
+                    (str, domainsPolicy) # "data": policyModel
+                    ]   
+                ]   
+            ]
+    ): # Run by observers after indexation
+    for event in domainsEvents:
+        domainIndex = dict(policiesIndex.get(event.domain))
+        kindPolicies = list(domainIndex.get(event.kind))
 
-        for policy in candidatePolicies:
-            policy = dict(policy) # Dict with name and data keys.
-            result = evaluate(policy, event)
-            if result == 0:
+        for policyNameAndData in kindPolicies:
+            policyNameAndData = dict(policyNameAndData) # Dict with name and data keys.
+            match = evaluateMatch(policyNameAndData, event)
+            if match == 0:
                 continue
             else:
-                eventData, policyActions = result
-                executeActions(eventData, policyActions)
+                validatedEvent, policyActions = match
+                executeActions(validatedEvent, policyActions)
 
-def evaluate(policy: dict, event: Event):
-    policyCondition = dict(policy["data"]["when"])
-    policySystemdInfo = policyCondition.get("systemdInfo", {})
+def evaluateMatch(policy: dict[
+                (str, str), # "name": policyName
+                (str, domainsPolicy) # "data": policyModel -> when: dict, then: dict
+                ], 
+                event: Event) -> Union[Event, ThenBase]: 
+    
+    # Evaluates if policy and event matches
+    policyCondition = dict(domainsPolicy(policy["data"]).when)
+    policySystemdInfo = dict(policyCondition.get("systemdInfo"))
     
     if policyCondition.get("subject") != event.subject:
         return 0
 
-    for key, value in policySystemdInfo.items():
-        eventValue = event.systemdInfo.get(key)
-        if isinstance(value, str) and value.strip():
-            value = value.strip()
-            operators = [">=", ">", "<=", "<"]
-            for op in operators:
-                if value.startswith(op):
-                    number = float(value.replace(op, "")) # Remove operator from string. Example: ">50" to "50"
-                    if eventValue is None:
-                        return 0
-                    if not eval(str(eventValue) + op + str(number)):
-                        return 0
-        else:
-            if eventValue != value:
-                return 0
+    if policySystemdInfo:
+        for key, value in policySystemdInfo.items():
+            eventValue = dict(event.systemdInfo).get(key)
+            if isinstance(value, str) and value.strip():
+                value = value.strip()
+                operators = [">=", ">", "<=", "<"]
+                for op in operators:
+                    if value.startswith(op):
+                        number = float(value.replace(op, "")) # Remove operator from string. Example: ">50" to "50"
+                        if eventValue is None:
+                            return 0
+                        if not eval(str(eventValue) + op + str(number)):
+                            return 0
+            else:
+                if eventValue != value:
+                    return 0
     
     print("LOG: policy and event matches.")
 
-    policyActions = policy["data"]["then"]
+    policyActions = ThenBase(policy["data"]["then"])
 
     return event, policyActions # This is for actions.py
 

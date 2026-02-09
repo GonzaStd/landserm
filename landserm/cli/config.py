@@ -4,7 +4,7 @@ from rich.pretty import Pretty
 from os.path import abspath
 from landserm.config.system import *
 from landserm.semantics.types import parseValue
-from landserm.config.loader import domainsConfigPaths, loadConfig, saveConfig, getSchema, domains
+from landserm.config.loader import domainsConfigPaths, loadConfig, saveConfig, getSchema, domainNames
 
 @click.group()
 def config():
@@ -20,7 +20,7 @@ def show(domain: str = None, unit: str = None):
         configData = loadConfig(domain, domainsConfigPaths)
         print(Pretty(configData, expand_all=True))
     else:
-        for domain in domains:
+        for domain in domainNames:
             configData = loadConfig(domain, domainsConfigPaths)
             print(Pretty(configData, expand_all=True))
 

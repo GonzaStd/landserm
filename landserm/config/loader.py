@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 from os import environ as env
 from os import path as osPath
 from pathlib import Path
+from typing import Union
 from landserm.config.validators import isPath
+from landserm.config.schemas import delivery, domains, policies
 
 env_paths = [
     Path("/etc/landserm/.env"),
@@ -23,16 +25,13 @@ else:
 
 landsermRoot = str(Path(__file__).resolve().parents[2])
 defaultConfigBase = landsermRoot + "/config-template/"
-chosenConfigBase = env.get("LANDSERM_CONFIG_PATH", "")
+chosenConfigBase = env.get("LANDSERM_CONFIG_PATH", defaultConfigBase)
 
 def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict: 
     if osPath.isdir(chosenConfigBase):
         configBase = chosenConfigBase
     else:
-        if not chosenConfigBase or chosenConfigBase == "":
-            print(f"WARNING: You didn't configured a base config")
-        else:
-            print(f"WARNING: Your base config ({chosenConfigBase}) does not exist")
+        print(f"WARNING: Your base config ({chosenConfigBase}) does not exist")
         print(f"INFO: Using {defaultConfigBase}")
         configBase = defaultConfigBase
 
@@ -64,9 +63,9 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
             print(f"WARNING: {file} is not in path: {configFolderPath}")
     return filesPath
         
-domains = ["network", "services", "storage"]
+domainNames = ["network", "services", "storage"]
 
-def loadConfig(configType: str, domain: str = None) -> dict:
+def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]:
 
     configModule = importlib.import_module(f"landserm.config.schemas.{configType}")
 
@@ -86,6 +85,25 @@ def loadConfig(configType: str, domain: str = None) -> dict:
         data = yaml.safe_load(f)
     return SchemaClass(**data)
 
-def saveConfig(name, configPaths, configData):
-    with open(configPaths[name], "w") as f:
-        yaml.safe_dump(configData, f)
+
+
+def saveConfig(configType: str, configData, domain: str = None):
+    if configType == "delivery":
+        fileName = configType
+        configPaths = resolveConfigPath(fileName)
+    elif configType in ["domains", "policies"]:
+        if not domain:
+            raise ValueError("Domain needed for saving")
+        fileName = domain
+        configPaths = resolveConfigPath(fileName, f"{configType}/")
+    else:
+        raise ValueError(f"Unknown config type: {configType}")
+    
+    # Convertir Pydantic a dict
+    if hasattr(configData, 'model_dump'):
+        data = configData.model_dump()
+    else:
+        data = configData
+    
+    with open(configPaths[fileName], "w") as f:
+        yaml.safe_dump(data, f)

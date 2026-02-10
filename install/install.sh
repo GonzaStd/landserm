@@ -5,7 +5,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 VENV_PATH="${LANDSERM_ROOT}/.venv"
-DAEMON_LOG_FILE="/var/log/landserm/landserm-daemon.log"
 echo -e "${GREEN}=== Landserm Installation Script ===${NC}"
 
 # Ensure the script is inside /opt/landserm
@@ -39,7 +38,8 @@ mkdir -p /opt/landserm
 mkdir -p /var/log/landserm
 mkdir -p /etc/landserm
 
-touch "$DAEMON_LOG_FILE"
+touch "/var/log/landserm/landserm-daemon.log"
+touch "/etc/landserm/.env"
 
 if [ -d "config-template" ]; then
     cp -rn config-template/* /etc/landserm 2>/dev/null || true
@@ -53,6 +53,7 @@ chown -R landserm:landserm /etc/landserm
 chmod 755 /opt/landserm
 chmod 755 /var/log/landserm
 chmod 750 /etc/landserm
+chmod 700 /etc/landserm/.env
 
 chmod 640 "${DAEMON_LOG_FILE}"
 chown landserm:landserm "${DAEMON_LOG_FILE}"

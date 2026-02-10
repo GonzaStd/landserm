@@ -43,7 +43,7 @@ chown landserm:landserm "$DAEMON_LOG_FILE"
 echo -e "${GREEN} Log file ready at $DAEMON_LOG_FILE ${NC}"
 
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
-pip install .
+pip install landserm
 echo -e "${GREEN}Package installed!${NC}"
 echo -e "${YELLOW}Installing systemd service...${NC}"
 cp install/landserm.service /etc/systemd/system

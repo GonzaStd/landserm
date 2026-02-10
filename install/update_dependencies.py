@@ -30,6 +30,18 @@ subprocess.run([
 with requirements_path.open() as f:
     requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
+fixed_requirements = []
+luma_oled_found = False
+for req in requirements:
+    if req.startswith("luma==") or req.startswith("luma>") or req.startswith("luma<"):
+        fixed_requirements.append("luma.oled==3.14.0")
+        fixed_requirements.append("luma.core==2.5.3")
+        luma_oled_found = True
+    else:
+        fixed_requirements.append(req)
+
+requirements = list(dict.fromkeys(fixed_requirements))
+
 with pyproject_path.open("r") as f:
     pyproject_data = tomlkit.parse(f.read())
 

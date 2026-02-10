@@ -68,6 +68,9 @@ echo -e "${YELLOW}Connecting to virtual env...${NC}"
 source .venv/bin/activate
 echo -e "${GREEN}Sucessfully connected!${NC}"
 echo -e "${GREEN}Virtual environment is installed and set!${NC}"
+echo -e "${YELLOW}Updating dependencies for landserm package...${NC}"
+python3 install/update_dependencies.py
+echo -e "${GREEN}Dependencies are now up to date!${NC}"
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
 pip install .
 echo -e "${GREEN}Package installed!${NC}"

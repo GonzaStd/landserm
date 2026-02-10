@@ -13,6 +13,7 @@ SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 LANDSERM_ROOT="$(dirname "$SCRIPT_PARENT")"
 cd $LANDSERM_ROOT
+LANDSERM_ROOT="$(pwd)"
 if [[ "$LANDSERM_ROOT" != "/opt/landserm" ]]; then
     echo -e "${RED}ERROR: The installer script must be inside /opt/landserm (current: $SCRIPT_PATH)${NC}"
     echo -e "${RED}Move the repository to /opt/landserm and run the script from there.${NC}"
@@ -46,9 +47,9 @@ if [ -d "config-template" ]; then
 fi
 
 echo -e "${YELLOW} Setting permissions...${NC}"
-chown -R landserm /opt/landserm
-chown -R landserm /var/log/landserm
-chown -R landserm /etc/landserm
+chown -R landserm:landserm /opt/landserm
+chown -R landserm:landserm /var/log/landserm
+chown -R landserm:landserm /etc/landserm
 chmod 755 /opt/landserm
 chmod 755 /var/log/landserm
 chmod 750 /etc/landserm
@@ -61,6 +62,8 @@ if ! [[ -d "$VENV_PATH" ]]; then
     python3 -m venv .venv
     echo -e "${GREEN}.venv folder was sucessfully created!${NC}"
 fi
+chown -R landserm:landserm "$VENV_PATH"
+echo -e "${GREEN}.venv ownership set to landserm:landserm${NC}"
 echo -e "${YELLOW}Connecting to virtual env...${NC}"
 source .venv/bin/activate
 echo -e "${GREEN}Sucessfully connected!${NC}"

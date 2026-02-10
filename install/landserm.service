@@ -10,9 +10,9 @@ Group=landserm
 WorkingDirectory=/opt/landserm
 ExecStart=/usr/local/bin/landserm-daemon
 Restart=on-failure
-RestartSec010
-StandardOutput=journal
-StandardError=journal
+RestartSec=10
+StandardOutput=append:/var/log/landserm/landserm-daemon.log
+StandardError=append:/var/log/landserm/landserm-daemon.log
 SyslogIdentifier=landserm
 
 NoNewPrivileges=true

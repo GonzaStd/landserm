@@ -18,7 +18,7 @@ env_paths = [
 for env_file in env_paths:
     if env_file.exists():
         load_dotenv(env_file)
-        print(f"Loaded env from {env_file}")
+        print(f"LOG: Loaded env from {env_file}")
         break
 else:
     print("WARNING: No .env file found, using defaults")
@@ -83,6 +83,7 @@ def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryCo
 
     with open(configPaths[fileName]) as f:
         data = yaml.safe_load(f)
+    
     return SchemaClass(**data)
 
 

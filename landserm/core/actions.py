@@ -8,7 +8,7 @@ from landserm.core.events import Event
 
 allowedVarsSet = {"domain", "kind", "subject", "systemdInfo", "payload"}
 
-def execScript(eventData: Event, scriptData: ScriptAction, policyActions: ThenBase):
+def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
     scriptsPath = env.get("LANDSERM_SCRIPTS_PATH", "/etc/landserm/scripts/")
     scriptName = str(scriptData.name)
     if scriptName.strip("/"):
@@ -31,8 +31,11 @@ def execScript(eventData: Event, scriptData: ScriptAction, policyActions: ThenBa
         validArguments.append(expanded)
    
     command = [scriptPath] + validArguments
-    print(f"=== EXECUTING {scriptName} ===")
-    subprocess.run(command, shell=False)
+    print(f"=== EXECUTING {scriptName} (Priority: {priority}) ===")
+    try:
+        subprocess.run(command, shell=False)
+    except PermissionError as e:
+        print(f"ERROR: Couldn't execute script: {scriptName} Error: {e}")
     print(f"=== SCRIPT ENDED ===")
 
 supportedActions = {
@@ -42,19 +45,24 @@ supportedActions = {
      "push": deliveryPush
 }
 def executeActions(eventData: Event, policyActions: ThenBase):
-    priority = policyActions.priority
-    for actionName in type(policyActions).model_fields:
-        if actionName == "priority":
-            continue
-        
-        actionData = getattr(policyActions, actionName)
-        
-        if actionData is None:
-            continue
-        
-        if actionName not in supportedActions:
-            print(f"WARNING: Unknown action '{actionName}'. Skipping.")
-            continue
-        
-        print(f"LOG: executing action {actionName}")
-        supportedActions[actionName](eventData, actionData, priority)
+    
+        priority = policyActions.priority
+        for actionName in type(policyActions).model_fields:
+            try:
+                if actionName == "priority":
+                    continue
+                
+                actionData = getattr(policyActions, actionName)
+                
+                if actionData is None:
+                    continue
+                
+                if actionName not in supportedActions:
+                    print(f"WARNING: Unknown action '{actionName}'. Skipping.")
+                    continue
+                
+                print(f"LOG: executing action {actionName}")
+                supportedActions[actionName](eventData, actionData, priority)
+
+            except PermissionError as e:
+                print(f"ERROR: No permission to execute the following action: {actionName} Error: {e}")

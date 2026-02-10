@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
-
+source .venv/bin/activate
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+DAEMON_LOG_FILE="/var/log/landserm/landserm-daemon.log"
 echo -e "${GREEN}=== Landserm Installation Script ===${NC}"
-
-if [[ $EUID -ne 0]]; then # Environment User ID
+if [[ $EUID -ne 0 ]]; then 
     echo -e "${RED}This script must be run as root${NC}"
     exit 1
 fi
@@ -24,39 +24,43 @@ mkdir -p /opt/landserm
 mkdir -p /var/log/landserm
 mkdir -p /etc/landserm
 
-if [ -d "config" ]; then
-    cp -r config-template/* /etc/landserm
-    echo -e "${GREEN} Configuration files and folders template copied!${NC}"
+touch "$DAEMON_LOG_FILE"
+
+if [ -d "config-template" ]; then
+    cp -rn config-template/* /etc/landserm 2>/dev/null || true
+    echo -e "${GREEN} Configuration template (folders and files) are now in /etc/landserm ${NC}"
 fi
 
 echo -e "${YELLOW} Setting permissions...${NC}"
-chown -R landserm:landserm /opt/landserm
-chown -R landserm:landserm /var/log/landserm
-chown -R landserm:landserm /etc/landserm
+chown -R landserm /opt/landserm
+chown -R landserm /var/log/landserm
+chown -R landserm /etc/landserm
 chmod 755 /opt/landserm
 chmod 755 /var/log/landserm
 chmod 750 /etc/landserm
 
+chmod 640 "$DAEMON_LOG_FILE"
+chown landserm:landserm "$DAEMON_LOG_FILE"
+echo -e "${GREEN} Log file ready at $DAEMON_LOG_FILE ${NC}"
+
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
 pip install .
-echo -e "${GREEN} Package installed!${NC}"
-
+echo -e "${GREEN}Package installed!${NC}"
 echo -e "${YELLOW}Installing systemd service...${NC}"
 cp install/landserm.service /etc/systemd/system
 systemctl daemon-reload
-echo -e "${GREEN} Service Installed!${NC}"
-
+echo -e "${GREEN}Service Installed!${NC}"
 read -p "Do you want to enable and start the service now? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     systemctl enable landserm.service
     systemctl start landserm.service
-    echo -e "${GREEN}✓ Service enabled and started${NC}"
+    echo -e "${GREEN}Service enabled and started${NC}"
     echo -e "${YELLOW}Check status with: systemctl status landserm${NC}"
 else
     echo -e "${YELLOW}To start later, run:${NC}"
-    echo "  systemctl enable landserm.service"
-    echo "  systemctl start landserm.service"
+    echo "systemctl enable landserm.service"
+    echo "systemctl start landserm.service"
 fi
 
 echo -e "${GREEN}=== Installation complete ===${NC}"

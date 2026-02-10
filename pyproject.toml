@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.scripts]
-landserm = "landserm.cli.main:cli"
+#landserm = "landserm.cli.main:cli" Not working yet
 landserm-daemon = "landserm.daemon.daemon:main"
 
 [tool.setuptools]

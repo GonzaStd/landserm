@@ -6,7 +6,7 @@ from luma.oled.device import ssd1306, sh1106, ssd1331
 from typing import Union
 from landserm.config.loader import landsermRoot
 from landserm.config.loader import loadConfig, resolveConfigPath
-from landserm.config.schemas.policies import ThenBase, OledAction
+from landserm.config.schemas.policies import ThenBase, OledAction, LogAction, PushMethods
 from landserm.config.schemas.delivery import ConfigPush, ConfigOled
 from landserm.core.context import expand
 from landserm.core.events import Event
@@ -15,31 +15,38 @@ oledQueue = Queue()
 oledWorker = None
 oledDevice = None
 
-def deliveryLog(eventData: Event, policyActionData: ThenBase):
-    policyLogData = policyActionData.log
-    if not bool(policyLogData.enabled):
+def deliveryLog(eventData: Event, policyLogData: LogAction, priority: str):
+    logsConfigData = loadConfig("delivery").logs
+
+    if not logsConfigData.enabled:
+        return 0
+
+    if not policyLogData.enabled:
         return 0
     
+
     timestamp = datetime.now().strftime("%B %d, %y %H:%M:%S")
     logMessage = f"""
-                [{timestamp}] {eventData.domain.upper()} EVENT
-                Kind:  {eventData.kind}
-                Subject:  {eventData.subject}
-                """
+[{timestamp}] {eventData.domain.upper()} EVENT
+Priority: {priority}
+Kind:  {eventData.kind}
+Subject:  {eventData.subject}
+"""
     if eventData.systemdInfo:
         if isinstance(eventData.systemdInfo, dict):
             systemdInfo = json.dumps(eventData.systemdInfo, indent=2)
         else:
             systemdInfo = str(eventData.systemdInfo)
         logMessage = logMessage + \
-        f"""  systemdInfo:
-            {systemdInfo}
-            {'='*50}
-        """
+        f"""
+systemdInfo:
+{systemdInfo}
+{'='*50}
+"""
         
 
     try:
-        folderPath = policyLogData.folder_path
+        folderPath = logsConfigData.folder_path
         with open(folderPath + f"landserm-{eventData.domain}.log", "a") as logFile:
             logFile.write(logMessage)
         print(f"LOG: Written to {folderPath}")
@@ -153,10 +160,8 @@ def oledWorkerThread(device: Union[ssd1331, sh1106, ssd1331], fontSize: int):
 
         oledQueue.task_done()
 
-def deliveryOLED(eventData: Event, policyActionData: ThenBase):
+def deliveryOLED(eventData: Event, policyOledData: OledAction, priority: str):
     global oledWorker, oledDevice
-
-    policyOledData = policyActionData.oled
 
     oledConfig = loadConfig("delivery").oled
     if not bool(oledConfig.enabled):
@@ -164,7 +169,9 @@ def deliveryOLED(eventData: Event, policyActionData: ThenBase):
     
     messageTemplate = policyOledData.message
     message = expand(messageTemplate, eventData)
-
+    message += "\nPriority: " + priority
+    if eventData.domain == "services" and eventData.kind == "status":
+        message += "\nActive: " + eventData.systemdInfo.get("active")
     if oledDevice is None:
         driver = oledConfig.driver
         oledDevice = driverOLED(driver)
@@ -181,21 +188,19 @@ def deliveryOLED(eventData: Event, policyActionData: ThenBase):
     print(f"LOG: OLED message queued")
 
 class Push():
-    def __init__(self, eventData: Event, policyActionData: ThenBase, nameMethod: str):
+    def __init__(self, eventData: Event, nameMethod: str, priority: str):
         
         self.configPath = resolveConfigPath("delivery")
         self.config = loadConfig("delivery").push
         
-        self.name = nameMethod
-
         self.eventData = eventData
         self.domain = eventData.domain
         self.subject = eventData.subject
         self.kind = eventData.kind
         self.systemdInfo = eventData.systemdInfo
 
-        self.policyActionData = policyActionData
-        self.priority = policyActionData.priority
+        self.name = nameMethod
+        self.priority = priority
 
         self.domainEmoji = getData(self.domain,"emoji")
         self.domainColor = getData(self.domain,"color")
@@ -223,9 +228,9 @@ class Push():
             
 
 
-def deliveryPush(eventData: Event, policyActionData: ThenBase):
+def deliveryPush(eventData: Event, pushData: PushMethods, priority: str):
     nameMethods = ["ntfy", "gotify", "webhook"]
-    selectedMethods = policyActionData.push # push methods
+    selectedMethods = pushData.root
 
     functionMethods = {
         "ntfy": Notify,
@@ -237,7 +242,7 @@ def deliveryPush(eventData: Event, policyActionData: ThenBase):
             if not method in nameMethods:
                 print(f"WARNING: Bad policy configuration, method {method} doesn't exist. Skipping method.")
                 continue
-            methodInstance = Push(eventData, policyActionData, method)
+            methodInstance = Push(eventData, method, priority)
             if not getattr(methodInstance.config, method).enabled:
                 print(f"LOG: Policy calls the next push method: {method} but it is disabled in your config delivery.yaml")
             functionMethods[method](methodInstance)

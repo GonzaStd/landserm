@@ -18,3 +18,4 @@ push:
 
 logs:
   enabled: true
+  folder_path: "/home/gonzadev/projects/landserm/logs/"

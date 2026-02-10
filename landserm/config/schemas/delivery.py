@@ -23,13 +23,9 @@ class PushNotify(BaseModel):
     def validate_configured(self):
         if not self.enabled:
             return self
-            
-        try:
-            response = requests.get(self.server, timeout=2)
-            if response.status_code != 200:
-                warnings.warn(f"Notify server {self.server} responded with {response.status_code}")
-        except requests.RequestException as e:
-            warnings.warn(f"Couldn't connect to ntfy server {self.server}: {e}")
+
+        if not self.server.startswith("https://"):
+            raise ValueError("Notify server must start with https://")
         
         return self
 
@@ -46,12 +42,8 @@ class PushGotify(BaseModel):
         if not self.app_token:
             raise ValueError("Gotify is enabled but GOTIFY_TOKEN is not set, and it is needed to work properly.")
     
-        try:
-            response = requests.get(f"{self.server}/health", timeout=2)
-            if response.status_code != 200:
-                warnings.warn(f"Gotify server {self.server} responded with {response.status_code}")
-        except requests.RequestException as e:
-            warnings.warn(f"Couldn't connect to Gotify server {self.server}: {e}")
+        if not self.server.startswith("https://"):
+            raise ValueError("Gotify server must start with https://")
 
         return self
 
@@ -84,10 +76,13 @@ class ConfigLog(BaseModel):
 
     @model_validator(mode='after')
     def validate_configuration(self):
-        if not self.path.endswith("/"):
+        if not self.folder_path.endswith("/"):
             raise ValueError("Path should end with \"/\", it is the folder to the logs.")
-        if not isPath(self.path):
-            raise ValueError("Invalid path.")
+        try:
+            if isPath(self.folder_path):
+                return self
+        except ValueError as e:
+            print(f"Path to folder: {self.folder_path} does not exist. Error: {e}")
 
 class DeliveryConfig(BaseModel):
     oled: ConfigOled

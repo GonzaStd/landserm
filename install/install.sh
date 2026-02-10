@@ -4,13 +4,12 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
-VENV_PATH="${LANDSERM_ROOT}/.venv"
 echo -e "${GREEN}=== Landserm Installation Script ===${NC}"
-
-# Ensure the script is inside /opt/landserm
 SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-LANDSERM_ROOT="$(dirname "$SCRIPT_PARENT")"
+LANDSERM_ROOT="$(dirname "$SCRIPT_DIR")"
+DAEMON_LOG_FILE="/var/log/landserm/landserm-daemon.log"
+VENV_PATH="${LANDSERM_ROOT}/.venv"
 cd $LANDSERM_ROOT
 LANDSERM_ROOT="$(pwd)"
 if [[ "$LANDSERM_ROOT" != "/opt/landserm" ]]; then
@@ -38,7 +37,7 @@ mkdir -p /opt/landserm
 mkdir -p /var/log/landserm
 mkdir -p /etc/landserm
 
-touch "/var/log/landserm/landserm-daemon.log"
+touch "${DAEMON_LOG_FILE}"
 touch "/etc/landserm/.env"
 
 if [ -d "config-template" ]; then

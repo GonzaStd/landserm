@@ -1,5 +1,13 @@
 #!/bin/bash
 set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+VENV_PATH="${SCRIPT_DIR}/../.venv"
+if [ -d "$VENV_PATH" ]; then
+    source "${VENV_PATH}/bin/activate"
+else
+    echo "You don't have .venv"
+    exit
+fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -31,7 +39,7 @@ fi
 
 pip uninstall -y landserm
 
-read -p "Remove data and configuration? (y/n) " -n 1 -r
+read -p "Remove data and configuration? (y/n) " -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     rm -rf /opt/landserm
@@ -40,7 +48,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${GREEN}Data removed${NC}"
 fi
 
-read -p "Remove landserm user? (y/n) " -n 1 -r
+read -p "Remove landserm user? (y/n) " -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     userdel landserm

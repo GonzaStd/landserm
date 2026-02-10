@@ -16,10 +16,14 @@ env_paths = [
 ]
 
 for env_file in env_paths:
-    if env_file.exists():
-        load_dotenv(env_file)
-        print(f"LOG: Loaded env from {env_file}")
-        break
+    try:
+        if env_file.exists():
+            load_dotenv(env_file)
+            print(f"LOG: Loaded env from {env_file}")
+            break
+    except PermissionError:
+        print(f"No permission to read {env_file}. Skipping.")
+        continue
 else:
     print("WARNING: No .env file found, using defaults")
 

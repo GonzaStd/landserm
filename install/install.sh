@@ -17,6 +17,9 @@ if ! id -u landserm &> /dev/null; then
 else
     echo -e "${YELLOW}User landserm already exists${NC}"
 fi
+echo -e "${YELLOW}Adding landserm user to messagebus group (it might already be in it)...${NC}"
+usermod -aG messagebus landserm
+echo -e "${GREEN}Added correctly!${NC}"
 
 echo -e "${YELLOW}Creating directories...${NC}"
 mkdir -p /opt/landserm
@@ -57,6 +60,12 @@ echo -e "${GREEN}Virtual environment is installed and set!${NC}"
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
 pip install .
 echo -e "${GREEN}Package installed!${NC}"
+echo -e "${YELLOW}Copying landserm-daemon wrapper to /usr/local/bin...${NC}"
+cp install/landserm-daemon /usr/local/bin/landserm-daemon
+chmod 750 /usr/local/bin/landserm-daemon
+chown landserm:landserm /usr/local/bin/landserm-daemon
+echo -e "${GREEN}landserm-daemon script installed in /usr/local/bin with correct owner and permissions!${NC}"
+
 echo -e "${YELLOW}Installing systemd service...${NC}"
 cp install/landserm.service /etc/systemd/system
 systemctl daemon-reload

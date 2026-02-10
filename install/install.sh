@@ -72,7 +72,7 @@ echo -e "${YELLOW}Updating dependencies for landserm package...${NC}"
 python3 install/update_dependencies.py
 echo -e "${GREEN}Dependencies are now up to date!${NC}"
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
-sudo -u landserm .venv/bin/pip install .
+sudo -u landserm .venv/bin/pip install --no-cache-dir .
 chown -R landserm:landserm .venv
 echo -e "${GREEN}Package installed!${NC}"
 echo -e "${YELLOW}Copying landserm-daemon wrapper to /usr/local/bin...${NC}"

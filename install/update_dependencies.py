@@ -5,7 +5,7 @@ from pathlib import Path
 try:
     import tomlkit
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "tomlkit"], check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "tomlkit"], check=True)
     import tomlkit
 
 script_dir = Path(__file__).parent.resolve()
@@ -16,7 +16,7 @@ requirements_path = project_root / "requirements.pipreqs.txt"
 try:
     import pipreqs
 except ImportError:
-    subprocess.run([sys.executable, "-m", "pip", "install", "pipreqs"], check=True)
+    subprocess.run([sys.executable, "-m", "pip", "install", "--no-cache-dir", "pipreqs"], check=True)
 
 pipreqs_bin = str(Path(sys.executable).parent / "pipreqs")
 source_code_path = project_root / "landserm"

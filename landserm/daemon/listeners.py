@@ -51,7 +51,6 @@ async def listenDbusMessages(callback):
     assert reply.message_type == MessageType.METHOD_RETURN
     
     def handler(message):
-        print(message.message_type, message.member, message.interface)
         if message.message_type != MessageType.SIGNAL:
             return
         if message.member != "PropertiesChanged":

@@ -5,7 +5,8 @@ from landserm.daemon.listeners import unescape_unit_filename
 from landserm.core.policy_engine import process, policiesIndexation
 from landserm.config.loader import loadConfig
 from landserm.config.schemas.domains import ServicesConfig
-
+from rich import print
+from rich.pretty import Pretty
 def checkAutoStart(servicesConfig: ServicesConfig):
     servicesData = getServicesStartData()
     targetServices = list(servicesConfig.include)
@@ -41,9 +42,8 @@ initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # 
 for event in initialStates:
     lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
 
-print("LOG: INITIAL STATES:", lastSystemdInfo)
+print("LOG: INITIAL STATES:", Pretty(lastSystemdInfo))
 policiesIndex = policiesIndexation()
-process(initialStates, policiesIndex)
 
 def handleDbus(msg):
     # msg has properties like path, interface, member, body, etc.
@@ -54,7 +54,8 @@ def handleDbus(msg):
     escaped_unit_name = path.split("/")[-1]
     unit_filename = unescape_unit_filename(escaped_unit_name)
     unit_name = unit_filename[:-8]
-
+    if unit_name not in servicesConfig.include:
+        return 0
     if len(msg.body) >= 2:
         changed = dict(msg.body[1])
         friendlyProperties = ["active", "substate", "load", "result", "exec_main", "pid"]
@@ -93,6 +94,6 @@ def handleDbus(msg):
         
         lastSystemdInfo[unit_name]["status"] = systemdInfo 
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
-        print(f"LOG: Event triggered for {unit_name}: {systemdInfo}")
+        print(f"LOG: Event triggered for {unit_name}:", Pretty(systemdInfo))
         policiesIndex = policiesIndexation()
         process([event], policiesIndex)

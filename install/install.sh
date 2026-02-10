@@ -4,8 +4,20 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+VENV_PATH="${LANDSERM_ROOT}/.venv"
 DAEMON_LOG_FILE="/var/log/landserm/landserm-daemon.log"
 echo -e "${GREEN}=== Landserm Installation Script ===${NC}"
+
+# Ensure the script is inside /opt/landserm
+SCRIPT_PATH="$(readlink -f "$0")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+LANDSERM_ROOT="$(dirname "$SCRIPT_PARENT")"
+cd $LANDSERM_ROOT
+if [[ "$LANDSERM_ROOT" != "/opt/landserm" ]]; then
+    echo -e "${RED}ERROR: The installer script must be inside /opt/landserm (current: $SCRIPT_PATH)${NC}"
+    echo -e "${RED}Move the repository to /opt/landserm and run the script from there.${NC}"
+    exit 1
+fi
 if [[ $EUID -ne 0 ]]; then 
     echo -e "${RED}This script must be run as root${NC}"
     exit 1
@@ -44,10 +56,6 @@ chmod 750 /etc/landserm
 chmod 640 "${DAEMON_LOG_FILE}"
 chown landserm:landserm "${DAEMON_LOG_FILE}"
 echo -e "${GREEN}Log file ready at ${DAEMON_LOG_FILE} ${NC}"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-LANDSERM_ROOT="${SCRIPT_DIR}/.." # root from repo
-cd $LANDSERM_ROOT
-VENV_PATH="${LANDSERM_ROOT}/.venv"
 if ! [[ -d "$VENV_PATH" ]]; then
     echo -e "${YELLOW}Creating virtual environment...${NC}"
     python3 -m venv .venv

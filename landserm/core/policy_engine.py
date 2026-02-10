@@ -18,13 +18,18 @@ def policiesIndexation() -> dict:
             continue
 
         domainPolicyConfig = loadConfig("policies", domain)
-        domainPolicies = domainPolicyConfig.policies
+        # domainPolicyConfig now is a RootModel
+        domainPolicies = dict(domainPolicyConfig.root)
+        
+        print(f"LOG: Domain '{domain}' - Found {len(domainPolicies)} policies: {list(domainPolicies.keys())}")
 
         index.setdefault(domain, dict())
 
-        for policyName, policyModel in domainPolicies.items(): # (name, domainsPolicy object)
+        for policyName, policyModel in domainPolicies.items(): # (name, domainsPolicy object) domainsPolicy object is ServicesPolicy
+            print(f"LOG: Indexing policy '{policyName}'")
             kind = policyModel.when.kind
             if not kind or not policyModel.then:
+                print(f"WARNING: Policy '{policyName}' is invalid (missing kind or then)")
                 continue
 
             index[domain].setdefault(kind, list())
@@ -53,8 +58,10 @@ def process(domainsEvents: list[Event], policiesIndex: dict):
             policyNameAndData = dict(policyNameAndData) # Dict with name and data keys.
             match = evaluateMatch(policyNameAndData, event)
             if match == 0:
+                print("LOG: Policy doesn't match with last trigger event.")
                 continue
             else:
+                print("LOG: Policy and event matches!")
                 validatedEvent, policyActions = match
                 executeActions(validatedEvent, policyActions)
 
@@ -62,15 +69,10 @@ def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], i
     policyModel = policy["data"]
     policyCondition = policyModel.when
     
-    print(f"LOG: Evaluating policy '{policy['name']}' for event {event.subject}")
-    
     if policyCondition.subject != event.subject:
-        print(f"LOG: Subject mismatch: policy expects '{policyCondition.subject}', event has '{event.subject}'")
         return 0
 
     policySystemdInfo = policyCondition.systemdInfo
-    
-    print(f"LOG: Checking systemdInfo conditions: {policySystemdInfo.model_fields_set}")
     
     for fieldName in policySystemdInfo.model_fields_set:
         fieldValue = getattr(policySystemdInfo, fieldName)
@@ -79,7 +81,6 @@ def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], i
             continue
             
         eventValue = event.systemdInfo.get(fieldName) if isinstance(event.systemdInfo, dict) else None
-        print(f"LOG: Comparing field '{fieldName}': policy expects '{fieldValue}', event has '{eventValue}'")
         
         if isinstance(fieldValue, str) and fieldValue.strip():
             value = fieldValue.strip()
@@ -93,15 +94,12 @@ def evaluateMatch(policy: dict, event: Event) -> Union[tuple[Event, ThenBase], i
                         return 0
                     break
             else:
-                # No operator found, exact match
                 if eventValue != fieldValue:
                     return 0
         else:
             if eventValue != fieldValue:
                 return 0
     
-    print("LOG: policy and event matches.")
-
     policyActions = policyModel.then
 
     return event, policyActions

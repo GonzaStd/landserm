@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, RootModel
 from typing import Optional, List, Dict, Literal, Union
 from landserm.config.validators import isService
 
@@ -32,14 +32,21 @@ class ScriptAction(BaseModel):
     args: Optional[List] = None
 
 class OledAction(BaseModel):
-    message: str = "Subject:$subject\nKind:$kind"
+    message: Optional[str] = "Subject:$subject\nKind:$kind"
     duration: int = Field(default=5, ge=3, le=30)
+
+class LogAction(BaseModel):
+    enabled: bool
+
+class PushMethods(RootModel[List[Literal["ntfy", "gotify", "webhook"]]]):
+    pass
 
 # Base action class
 class ThenBase(BaseModel):
+    priority: Optional[Literal["low", "default", "high", "urgent"]] = "default"
     script: Optional[ScriptAction] = None
-    log: Optional[Dict[Literal["enabled"], bool]] = None
-    push: Optional[List[Literal["ntfy", "gotify", "webhook"]]] = None
+    log: Optional[LogAction] = None
+    push: Optional[PushMethods] = None
     oled: Optional[OledAction] = None
 
     @model_validator(mode="after")
@@ -50,7 +57,6 @@ class ThenBase(BaseModel):
 
 class Policy(BaseModel):
     enabled: bool
-    priority: Optional[Literal["low", "default", "high", "urgent"]] = "default"
 
 class ServicesPolicy(Policy):
     when: WhenServices
@@ -69,12 +75,22 @@ def selectDomain(domain):
     if not policyClass:
         raise ValueError(f"Unknown domain: {domain}")
     
-    PoliciesConfig = type(
-        "PoliciesConfig",
-        (BaseModel,),
-        {
-            "__annotations__": {"policies": Dict[str, policyClass]},
-            "policies": Field(default_factory=dict)
-        }
-    )
+    # I migrated to RootModel to validate dictionary without wrapping it in a "policies" key
+    class PoliciesConfig(RootModel[Dict[str, policyClass]]):
+        
+        def __iter__(self):
+            return iter(self.root)
+        
+        def __getitem__(self, item):
+            return self.root[item]
+        
+        def items(self):
+            return self.root.items()
+        
+        def keys(self):
+            return self.root.keys()
+        
+        def values(self):
+            return self.root.values()
+    
     return PoliciesConfig

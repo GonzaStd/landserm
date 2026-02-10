@@ -81,7 +81,7 @@ echo -e "${YELLOW}Installing systemd service...${NC}"
 cp install/landserm.service /etc/systemd/system
 systemctl daemon-reload
 echo -e "${GREEN}Service Installed!${NC}"
-read -p "Do you want to enable and start the service now? (y/n) " -n 1 -r
+read -p "Do you want to enable and start the service now? (y/n) " -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     systemctl enable landserm.service

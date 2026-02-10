@@ -19,7 +19,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/landserm/logs /var/log/landserm
+ReadWritePaths=/var/log/landserm
 
 [Install]
 WantedBy=multi-user.target

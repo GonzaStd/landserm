@@ -73,6 +73,7 @@ python3 install/update_dependencies.py
 echo -e "${GREEN}Dependencies are now up to date!${NC}"
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
 pip install .
+chown -R landserm:landserm .venv
 echo -e "${GREEN}Package installed!${NC}"
 echo -e "${YELLOW}Copying landserm-daemon wrapper to /usr/local/bin...${NC}"
 cp install/landserm-daemon /usr/local/bin/landserm-daemon

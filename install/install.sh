@@ -62,7 +62,7 @@ if ! [[ -d "$VENV_PATH" ]]; then
     python3 -m venv .venv
     echo -e "${GREEN}.venv folder was sucessfully created!${NC}"
 fi
-chown -R landserm:landserm "$VENV_PATH"
+chown -R landserm:landserm .venv
 echo -e "${GREEN}.venv ownership set to landserm:landserm${NC}"
 echo -e "${YELLOW}Connecting to virtual env...${NC}"
 source .venv/bin/activate

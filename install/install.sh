@@ -38,7 +38,7 @@ mkdir -p /var/log/landserm
 mkdir -p /etc/landserm
 
 touch "${DAEMON_LOG_FILE}"
-touch "/etc/landserm/.env"
+cp "${LANDSERM_ROOT}/.env-template" "/etc/landserm/.env"
 
 if [ -d "config-template" ]; then
     cp -rn config-template/* /etc/landserm 2>/dev/null || true

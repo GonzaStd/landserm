@@ -8,7 +8,7 @@ policy-name:
   then:
       priority: "high"
       script: 
-        name: "script-name"
+        name: "script-example"
         args: ["$domain", "$subject", "$kind", "$systemdInfo.active", "$systemdInfo.substate"] # Example arguments
       log:
         enabled: true

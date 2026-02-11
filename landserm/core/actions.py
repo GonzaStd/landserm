@@ -9,7 +9,7 @@ from landserm.core.events import Event
 allowedVarsSet = {"domain", "kind", "subject", "systemdInfo", "payload"}
 
 def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
-    scriptsPath = env.get("LANDSERM_SCRIPTS_PATH", "/etc/landserm/scripts/")
+    scriptsPath = env.get("LANDSERM_SCRIPTS_PATH", "/opt/landserm/user/scripts/")
     scriptName = str(scriptData.name)
     if scriptName.strip("/"):
         scriptName = scriptName.strip("/")

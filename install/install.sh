@@ -39,12 +39,8 @@ mkdir -p /etc/landserm
 
 touch "${DAEMON_LOG_FILE}"
 cp "${LANDSERM_ROOT}/.env.template" "/etc/landserm/.env"
-
-if [ -d "config-template" ]; then
-    cp -rn config-template/* /etc/landserm 2>/dev/null || true
-    echo -e "${GREEN} Configuration template (folders and files) are now in /etc/landserm ${NC}"
-fi
-
+cp -rn config-template/* /etc/landserm 2>/dev/null || true
+echo -e "${GREEN} Configuration template (folders and files) are now in /etc/landserm ${NC}"
 echo -e "${YELLOW} Setting permissions...${NC}"
 chown -R landserm:landserm /opt/landserm
 chown -R landserm:landserm /var/log/landserm
@@ -53,6 +49,11 @@ chmod 755 /opt/landserm
 chmod 755 /var/log/landserm
 chmod 750 /etc/landserm
 chmod 700 /etc/landserm/.env
+
+if ls user/scripts/*.sh 1> /dev/null 2>&1; then
+    chmod 755 user/scripts/*.sh
+    echo -e "${GREEN}Scripts in user/scripts/ directory are now executable${NC}"
+fi
 
 chmod 640 "${DAEMON_LOG_FILE}"
 chown landserm:landserm "${DAEMON_LOG_FILE}"

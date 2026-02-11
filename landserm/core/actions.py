@@ -33,10 +33,16 @@ def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
     command = [scriptPath] + validArguments
     print(f"=== EXECUTING {scriptName} (Priority: {priority}) ===")
     try:
-        subprocess.run(command, shell=False)
+        result = subprocess.run(command, shell=False, capture_output=True, text=True)
+        if result.stdout:
+            print(f"    Output: {result.stdout}")
+        if result.returncode != 0:
+            print(f"    Exit code: {result.returncode}")
+            if result.stderr:
+                print(f"    Error: {result.stderr}")
     except PermissionError as e:
         print(f"ERROR: Couldn't execute script: {scriptName} Error: {e}")
-    print(f"=== SCRIPT ENDED ===")
+    print(f"=== SCRIPT ENDED ===\n")
 
 supportedActions = {
      "script": execScript,

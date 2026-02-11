@@ -1,5 +1,5 @@
 #!/bin/bash
-source /opt/landserm/.venv/bin/activate
 cd /opt/landserm
+source /opt/landserm/.venv/bin/activate
 export PYTHONPATH="/opt/landserm"
-exec python3 /opt/landserm/landserm/daemon/daemon.py "$@"
+exec python3 -u /opt/landserm/landserm/daemon/daemon.py "$@"

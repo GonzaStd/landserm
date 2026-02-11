@@ -1,5 +1,3 @@
-import warnings
-import requests
 from os import getenv as env
 from typing import Optional, Literal
 from pydantic import BaseModel, Field, model_validator
@@ -79,10 +77,11 @@ class ConfigLog(BaseModel):
         if not self.folder_path.endswith("/"):
             raise ValueError("Path should end with \"/\", it is the folder to the logs.")
         try:
-            if isPath(self.folder_path):
-                return self
+            if not isPath(self.folder_path):
+                print(f"WARNING: Path to folder: {self.folder_path} does not exist.")
         except ValueError as e:
-            print(f"Path to folder: {self.folder_path} does not exist. Error: {e}")
+            print(f"WARNING: Path to folder: {self.folder_path} does not exist. Error: {e}")
+        return self
 
 class DeliveryConfig(BaseModel):
     oled: ConfigOled

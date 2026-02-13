@@ -74,13 +74,8 @@ class ConfigLog(BaseModel):
 
     @model_validator(mode='after')
     def validate_configuration(self):
-        if not self.folder_path.endswith("/"):
-            raise ValueError("Path should end with \"/\", it is the folder to the logs.")
-        try:
-            if not isPath(self.folder_path):
-                print(f"WARNING: Path to folder: {self.folder_path} does not exist.")
-        except ValueError as e:
-            print(f"WARNING: Path to folder: {self.folder_path} does not exist. Error: {e}")
+        if not isPath(self.folder_path):
+            raise ValueError(f"Path to folder: {self.folder_path} does not exist.")
         return self
 
 class DeliveryConfig(BaseModel):

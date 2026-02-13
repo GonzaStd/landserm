@@ -34,9 +34,5 @@ def getLogger(context: str = "daemon"):
     fileHandler = logging.handlers.RotatingFileHandler(filename=logFilePath, maxBytes=10*1024*1024, backupCount=5) # maxBytes = 10 MegaBytes
     fileHandler.setFormatter(formatter)
     _logger.addHandler(fileHandler)
-
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(formatter)
-    _logger.addHandler(consoleHandler)
     
     return logging.LoggerAdapter(_logger, {'context': context})

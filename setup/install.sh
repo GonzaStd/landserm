@@ -8,6 +8,7 @@ echo -e "${GREEN}=== Landserm Installation Script ===${NC}"
 SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 LANDSERM_ROOT="$(dirname "$SCRIPT_DIR")"
+SETUP_DIR="$LANDSERM_ROOT/setup/"
 DAEMON_LOG_FILE="/var/log/landserm/landserm-daemon.log"
 VENV_PATH="${LANDSERM_ROOT}/.venv"
 cd $LANDSERM_ROOT
@@ -70,20 +71,20 @@ source .venv/bin/activate
 echo -e "${GREEN}Sucessfully connected!${NC}"
 echo -e "${GREEN}Virtual environment is installed and set!${NC}"
 echo -e "${YELLOW}Updating dependencies for landserm package...${NC}"
-python3 install/update_dependencies.py
+python3 $SETUP_DIR/update_dependencies.py
 echo -e "${GREEN}Dependencies are now up to date!${NC}"
 echo -e "${YELLOW}Installing \"landserm\" Python package...${NC}"
 sudo -u landserm .venv/bin/pip install --no-cache-dir .
 chown -R landserm:landserm .venv
 echo -e "${GREEN}Package installed!${NC}"
 echo -e "${YELLOW}Copying landserm-daemon wrapper to /usr/local/bin...${NC}"
-cp install/landserm-daemon /usr/local/bin/landserm-daemon
+cp $SETUP_DIR/landserm-daemon /usr/local/bin/landserm-daemon
 chmod 750 /usr/local/bin/landserm-daemon
 chown landserm:landserm /usr/local/bin/landserm-daemon
 echo -e "${GREEN}landserm-daemon script installed in /usr/local/bin with correct owner and permissions!${NC}"
 
 echo -e "${YELLOW}Installing systemd service...${NC}"
-cp install/landserm.service /etc/systemd/system
+cp $SETUP_DIR/landserm.service /etc/systemd/system
 systemctl daemon-reload
 echo -e "${GREEN}Service Installed!${NC}"
 read -p "Do you want to enable and start the service now? (y/n) " -r

@@ -32,6 +32,7 @@ def loadEnvironment():
         try:
             if env_file.exists():
                 load_dotenv(env_file)
+                print("\n")
                 logger.info(f"Loaded env from {env_file}")
                 _env_loaded = True
                 return

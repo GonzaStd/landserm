@@ -1,12 +1,15 @@
+from landserm.daemon.listeners import unescape_unit_filename
 from landserm.config.system import getServicesStartData, getServiceDetails
 from landserm.config.validators import isService
-from landserm.core.events import Event
-from landserm.daemon.listeners import unescape_unit_filename
-from landserm.core.policy_engine import process, policiesIndexation
 from landserm.config.loader import loadConfig
 from landserm.config.schemas.domains import ServicesConfig
-from rich import print
+from landserm.core.events import Event
+from landserm.core.policy_engine import process, policiesIndexation
+from landserm.core.logger import getLogger
 from rich.pretty import Pretty
+
+logger = getLogger(context="services")
+
 def checkAutoStart(servicesConfig: ServicesConfig):
     servicesData = getServicesStartData()
     targetServices = list(servicesConfig.include)
@@ -42,7 +45,7 @@ initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # 
 for event in initialStates:
     lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
 
-print("LOG: INITIAL STATES:", Pretty(lastSystemdInfo))
+logger.info("Initial states:", Pretty(lastSystemdInfo))
 policiesIndex = policiesIndexation()
 
 def handleDbus(msg):
@@ -94,6 +97,6 @@ def handleDbus(msg):
         
         lastSystemdInfo[unit_name]["status"] = systemdInfo 
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
-        print(f"LOG: Event triggered for {unit_name}:", Pretty(systemdInfo))
+        logger.info(f"Event triggered for {unit_name}:", Pretty(systemdInfo))
         policiesIndex = policiesIndexation()
         process([event], policiesIndex)

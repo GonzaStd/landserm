@@ -1,8 +1,11 @@
 from landserm.config.loader import loadConfig, domainNames
+from landserm.config.schemas.policies import ThenBase
 from landserm.core.actions import executeActions
 from landserm.core.events import Event
 from typing import Union
-from landserm.config.schemas.policies import domainsPolicy, ThenBase
+from landserm.core.logger import getLogger
+
+logger = getLogger(context="policies")
 
 def policiesIndexation() -> dict:
     """
@@ -21,15 +24,15 @@ def policiesIndexation() -> dict:
         # domainPolicyConfig now is a RootModel
         domainPolicies = dict(domainPolicyConfig.root)
         
-        print(f"LOG: Domain '{domain}' - Found {len(domainPolicies)} policies: {list(domainPolicies.keys())}")
+        logger.debug(f"Domain '{domain}' - Found {len(domainPolicies)} policies: {list(domainPolicies.keys())}")
 
         index.setdefault(domain, dict())
 
         for policyName, policyModel in domainPolicies.items(): # (name, domainsPolicy object) domainsPolicy object is ServicesPolicy
-            print(f"LOG: Indexing policy '{policyName}'")
+            logger.debug(f"Indexing policy '{policyName}'")
             kind = policyModel.when.kind
             if not kind or not policyModel.then:
-                print(f"WARNING: Policy '{policyName}' is invalid (missing kind or then)")
+                logger.warning(f"Policy '{policyName}' is invalid (missing kind or then)")
                 continue
 
             index[domain].setdefault(kind, list())
@@ -58,10 +61,10 @@ def process(domainsEvents: list[Event], policiesIndex: dict):
             policyNameAndData = dict(policyNameAndData) # Dict with name and data keys.
             match = evaluateMatch(policyNameAndData, event)
             if match == 0:
-                print("LOG: Policy doesn't match with last trigger event.")
+                logger.info("Policy doesn't match with last trigger event.")
                 continue
             else:
-                print("LOG: Policy and event matches!")
+                logger.info("Policy and event matches!")
                 validatedEvent, policyActions = match
                 executeActions(validatedEvent, policyActions)
 

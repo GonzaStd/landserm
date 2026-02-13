@@ -5,6 +5,9 @@ from landserm.config.schemas.policies import ThenBase, ScriptAction
 from landserm.core.delivery import deliveryLog, deliveryOLED, deliveryPush
 from landserm.core.context import expand
 from landserm.core.events import Event
+from landserm.core.logger import getLogger
+
+logger = getLogger(context="actions")
 
 allowedVarsSet = {"domain", "kind", "subject", "systemdInfo", "payload"}
 
@@ -22,7 +25,7 @@ def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
         scriptsPath = scriptsPath.strip("/")
     scriptPath = f"/{scriptsPath}/{scriptName}"
     if not isPath(scriptPath):
-        print("LOG: Invalid path or script", scriptName, "does not exist.")
+        logger.warning("Invalid path or script", scriptName, "does not exist.")
         return 1
     
     validArguments = list()
@@ -31,18 +34,18 @@ def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
         validArguments.append(expanded)
    
     command = [scriptPath] + validArguments
-    print(f"=== EXECUTING {scriptName} (Priority: {priority}) ===")
+    logger.info(f"Executing {scriptName} (Priority: {priority})")
     try:
         result = subprocess.run(command, shell=False, capture_output=True, text=True)
         if result.stdout:
-            print(f"    Output: {result.stdout}")
+            logger.info(f"Output:\n{result.stdout}")
         if result.returncode != 0:
-            print(f"    Exit code: {result.returncode}")
+            logger.warning(f"Exit code: {result.returncode}")
             if result.stderr:
-                print(f"    Error: {result.stderr}")
+                logger.error(f"Error: {result.stderr}")
     except PermissionError as e:
-        print(f"ERROR: Couldn't execute script: {scriptName} Error: {e}")
-    print(f"=== SCRIPT ENDED ===\n")
+        logger.error(f"Couldn't execute script: {scriptName} Error: {e}")
+    logger.info(f"Script ended")
 
 supportedActions = {
      "script": execScript,
@@ -64,11 +67,11 @@ def executeActions(eventData: Event, policyActions: ThenBase):
                     continue
                 
                 if actionName not in supportedActions:
-                    print(f"WARNING: Unknown action '{actionName}'. Skipping.")
+                    logger.warning(f"Unknown action '{actionName}'. Skipping.")
                     continue
                 
-                print(f"LOG: executing action {actionName}")
+                logger.info(f"Executing action {actionName}")
                 supportedActions[actionName](eventData, actionData, priority)
 
             except PermissionError as e:
-                print(f"ERROR: No permission to execute the following action: {actionName} Error: {e}")
+                logger.error(f"No permission to execute the following action: {actionName} Error: {e}")

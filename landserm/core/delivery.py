@@ -10,6 +10,9 @@ from landserm.config.schemas.policies import ThenBase, OledAction, LogAction, Pu
 from landserm.config.schemas.delivery import ConfigPush, ConfigOled
 from landserm.core.context import expand
 from landserm.core.events import Event
+from landserm.core.logger import getLogger
+
+logger = getLogger(context="delivery")
 
 oledQueue = Queue()
 oledWorker = None
@@ -49,16 +52,16 @@ systemdInfo:
         folderPath = logsConfigData.folder_path
         with open(folderPath + f"landserm-{eventData.domain}.log", "a") as logFile:
             logFile.write(logMessage)
-        print(f"LOG: Written to {folderPath}")
+        logger.info(f"Written to {folderPath}")
     except PermissionError:
-        print(f"ERROR: No permission to write to {folderPath}. Change permissions or change to an allowed path.")
+        logger.error(f"No permission to write to {folderPath}. Change permissions or change to an allowed path.")
         
 def driverOLED(name: str) -> Union[ssd1331, sh1106, ssd1331]:
     from luma.core.error import DeviceNotFoundError
     try:
         from luma.core.interface.serial import i2c, spi
     except ImportError:
-        print("ERROR: luma.oled is not installed. Install `luma.oled` and `pillow` with pip inside the .venv")
+        logger.error("luma.oled is not installed. Install `luma.oled` and `pillow` with pip inside the .venv")
         return None
     
     oledConfig = loadConfig("delivery").oled
@@ -86,10 +89,10 @@ def driverOLED(name: str) -> Union[ssd1331, sh1106, ssd1331]:
             device = ssd1331(serial, width=width, height=height)
 
         else:
-            print(f"ERROR: Unknown OLED driver: {name}")
+            logger.error(f"Unknown OLED driver: {name}")
             return None
     except DeviceNotFoundError as e:
-        print(f"OLED device not found, but config has enabled it. Error: {e}")
+        logger.error(f"OLED device not found, but config has enabled it. Error: {e}")
         return None
 
     return device
@@ -99,14 +102,14 @@ def oledWorkerThread(device: Union[ssd1331, sh1106, ssd1331], fontSize: int):
     from PIL import ImageFont
     import re
 
-    print("LOG: OLED worker thread started")
+    logger.info("OLED worker thread started")
 
     try:
         fontRegular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", fontSize)
         fontBold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", fontSize)
-        print(f"LOG: Fonts loaded successfully")
+        logger.info(f"Fonts loaded successfully")
     except Exception as e:
-        print(f"WARN: Could not load TrueType fonts: {e}")
+        logger.warning(f"Could not load TrueType fonts: {e}")
         fontRegular = ImageFont.load_default()
         fontBold = fontRegular
 
@@ -129,12 +132,12 @@ def oledWorkerThread(device: Union[ssd1331, sh1106, ssd1331], fontSize: int):
         return segments if segments else [(line, False)]
 
     while True:
-        print("LOG: OLED worker waiting for message...")
+        logger.info("OLED worker waiting for message...")
         message, duration = oledQueue.get()
         if message is None:
             break
 
-        print(f"LOG: OLED displaying: {message}")
+        logger.info(f"OLED displaying: {message}")
 
         try:
             with canvas(device) as draw:
@@ -154,9 +157,9 @@ def oledWorkerThread(device: Union[ssd1331, sh1106, ssd1331], fontSize: int):
 
             time.sleep(duration)
             device.clear()
-            print("LOG: OLED cleared")
+            logger.info("OLED cleared")
         except Exception as e:
-            print(f"ERROR: OLED failed: {e}")
+            logger.error(f"OLED failed: {e}")
 
         oledQueue.task_done()
 
@@ -185,7 +188,7 @@ def deliveryOLED(eventData: Event, policyOledData: OledAction, priority: str):
 
     duration = policyOledData.duration
     oledQueue.put((message, duration))
-    print(f"LOG: OLED message queued")
+    logger.debug(f"OLED message queued")
 
 class Push():
     def __init__(self, eventData: Event, nameMethod: str, priority: str):
@@ -240,11 +243,11 @@ def deliveryPush(eventData: Event, pushData: PushMethods, priority: str):
     
     for method in selectedMethods:
             if not method in nameMethods:
-                print(f"WARNING: Bad policy configuration, method {method} doesn't exist. Skipping method.")
+                logger.warning(f"Bad policy configuration, method {method} doesn't exist. Skipping method.")
                 continue
             methodInstance = Push(eventData, method, priority)
             if not getattr(methodInstance.config, method).enabled:
-                print(f"LOG: Policy calls the next push method: {method} but it is disabled in your config delivery.yaml")
+                logger.warning(f"Policy calls the next push method: {method} but it is disabled in your config delivery.yaml")
             functionMethods[method](methodInstance)
 
 def Notify(ctx: Push):
@@ -255,7 +258,7 @@ def Notify(ctx: Push):
     topic = f"landserm-{ctx.domain}"
     
     if not server:
-        print("ERROR: ntfy server not configured. Skipping notify.")
+        logger.error("ntfy server not configured. Skipping notify.")
         return 1
     
     domainTags = {
@@ -285,12 +288,12 @@ def Notify(ctx: Push):
         import requests
         response = requests.post(f"{server}/{topic}", data=message.encode('utf-8'), headers=headers, timeout=10)
         if response.status_code == 200:
-            print(f"LOG: ntfy notification sent to {topic}")
+            logger.info(f"LOG: ntfy notification sent to {topic}")
             return 0
-        print(f"ERROR: ntfy failed with HTTP status code: {response.status_code}")
+        logger.error(f"ntfy failed with HTTP status code: {response.status_code}")
         return 1
     except Exception as e:
-        print(f"ERROR: ntfy request failed: {e}")
+        logger.error(f"ntfy request failed: {e}")
         return 1
     
 def Gotify(ctx: Push):
@@ -301,7 +304,7 @@ def Gotify(ctx: Push):
     token = configGotify.app_token
 
     if not server or not token:
-        print("ERROR: Gotify server and/or token not configured. Skipping.")
+        logger.error("Gotify server and/or token not configured. Skipping.")
         return 1
     
     priorityMap = {"low": 3, "default": 5, "high": 8, "urgent": 10}
@@ -316,12 +319,12 @@ def Gotify(ctx: Push):
         import requests
         response = requests.post(f"{server}/message", json=data, params={"token": token}, timeout=10)
         if response.status_code == 200:
-            print("LOG: Gotify notification sent")
+            logger.info("Gotify notification sent")
             return 0
-        print(f"ERROR: Gotify failed with HTTP status code {response.status_code}")
+        logger.error(f"Gotify failed with HTTP status code {response.status_code}")
         return 1
     except Exception as e:
-        print(f"ERROR: Gotify request failed: {e}")
+        logger.error(f"Gotify request failed: {e}")
 
 DOMAIN_HEADERS = ["color", "emoji"]
 DOMAINS = {
@@ -353,7 +356,7 @@ def Webhook(ctx: Push):
     url = configWebhook.url
 
     if not url:
-        print("ERROR: Webhook URL not configured")
+        logger.error("Webhook URL not configured")
         return 1
     
     discordPayload = {
@@ -377,9 +380,9 @@ def Webhook(ctx: Push):
         import requests
         response = response = requests.post(url, json=discordPayload, headers=requestHeaders, timeout=10)
         if response.status_code in [200, 204]:
-            print("LOG: Webhook notification sent")
+            logger.info("Webhook notification sent")
             return 0
-        print(f"ERROR: Discord Webhook failed HTTP status code {response.status_code}")
+        logger.error(f"Discord Webhook failed HTTP status code {response.status_code}")
         return 1
     except Exception as e:
-        print(f"ERROR: Discord Webhook request failed: {e}")
+        logger.error(f"Discord Webhook request failed: {e}")

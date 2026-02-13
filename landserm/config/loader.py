@@ -8,6 +8,9 @@ from pathlib import Path
 from typing import Union
 from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, domains, policies
+from landserm.core.logger import getLogger
+
+logger = getLogger(context="config")
 
 env_paths = [
     Path("/etc/landserm/.env"),
@@ -19,13 +22,13 @@ for env_file in env_paths:
     try:
         if env_file.exists():
             load_dotenv(env_file)
-            print(f"LOG: Loaded env from {env_file}")
+            logger.info(f"Loaded env from {env_file}")
             break
     except PermissionError:
-        print(f"No permission to read {env_file}. Skipping.")
+        logger.error(f"No permission to read {env_file}. Skipping.")
         continue
 else:
-    print("WARNING: No .env file found, using defaults")
+    logger.warning("No .env file found, using defaults")
 
 landsermRoot = str(Path(__file__).resolve().parents[2])
 defaultConfigBase = landsermRoot + "/config-template/"
@@ -35,8 +38,8 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
     if osPath.isdir(chosenConfigBase):
         configBase = chosenConfigBase
     else:
-        print(f"WARNING: Your base config ({chosenConfigBase}) does not exist")
-        print(f"INFO: Using {defaultConfigBase}")
+        logger.warning(f"Your base config ({chosenConfigBase}) does not exist")
+        logger.info(f"Using {defaultConfigBase}")
         configBase = defaultConfigBase
 
     files = list()
@@ -64,7 +67,7 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
         if isPath(filePath):
             filesPath[name] = filePath
         else:
-            print(f"WARNING: {file} is not in path: {configFolderPath}")
+            logger.warning(f"{file} is not in path: {configFolderPath}")
     return filesPath
         
 domainNames = ["services"]

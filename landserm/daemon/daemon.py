@@ -1,9 +1,12 @@
 import asyncio
 from landserm.daemon.listeners import listenDbusMessages
 from landserm.observers.services import handleDbus
+from landserm.core.logger import getLogger
+
+logger = getLogger(context="daemon")
 
 async def startDaemon():
-    print("LOG: Deamon initialized")
+    logger.info("Started")
     await asyncio.gather(
         listenDbusMessages(handleDbus)
     )

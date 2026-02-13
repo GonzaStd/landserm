@@ -1,5 +1,5 @@
 oled:
-  enabled: true
+  enabled: false
   driver: "sh1106"
   device: "/dev/12c-1"
   width: 128
@@ -18,4 +18,4 @@ push:
 
 logs:
   enabled: true
-  folder_path: "/home/gonzadev/projects/landserm/logs/"
+  folder_path: "/var/log/landserm/"

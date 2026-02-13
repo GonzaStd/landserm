@@ -38,15 +38,26 @@ def checkStatus(servicesConfig: ServicesConfig):
             events.append(event)
     return events
 
-servicesConfig = loadConfig("domains", domain="services")
+servicesConfig = None
+lastSystemdInfo = None
+policiesIndex = None
 
-lastSystemdInfo = {service: {"status":{}, "auto_start": None} for service in servicesConfig.include}
-initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # Events with systemdInfo from both interfaces
-for event in initialStates:
-    lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
-
-logger.info(f"Initial states: {Pretty(lastSystemdInfo)}")
-policiesIndex = policiesIndexation()
+def initializeServicesObserver():
+    """Initialize services observer state. Call once at daemon startup."""
+    global servicesConfig, lastSystemdInfo, policiesIndex
+    
+    if servicesConfig is not None:
+        return  # Already initialized
+    
+    servicesConfig = loadConfig("domains", domain="services")
+    lastSystemdInfo = {service: {"status":{}, "auto_start": None} for service in servicesConfig.include}
+    initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)
+    
+    for event in initialStates:
+        lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
+    
+    logger.info(f"Initial states loaded for {len(lastSystemdInfo)} services")
+    policiesIndex = policiesIndexation()
 
 def handleDbus(msg):
     # msg has properties like path, interface, member, body, etc.
@@ -97,6 +108,7 @@ def handleDbus(msg):
         
         lastSystemdInfo[unit_name]["status"] = systemdInfo 
         event = Event(domain="services", kind="status", subject=unit_name, systemdInfo=systemdInfo)
-        logger.info(f"Event triggered for {unit_name}:", Pretty(systemdInfo))
+        logger.info(f"Event triggered for {unit_name}")
+        logger.debug(f"Event data: {systemdInfo}")
         policiesIndex = policiesIndexation()
         process([event], policiesIndex)

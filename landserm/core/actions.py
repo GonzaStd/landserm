@@ -25,7 +25,7 @@ def execScript(eventData: Event, scriptData: ScriptAction, priority: str):
         scriptsPath = scriptsPath.strip("/")
     scriptPath = f"/{scriptsPath}/{scriptName}"
     if not isPath(scriptPath):
-        logger.warning("Invalid path or script", scriptName, "does not exist.")
+        logger.warning(f"Invalid path or script '{scriptName}' does not exist.")
         return 1
     
     validArguments = list()

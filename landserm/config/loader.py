@@ -12,23 +12,38 @@ from landserm.core.logger import getLogger
 
 logger = getLogger(context="config")
 
-env_paths = [
-    Path("/etc/landserm/.env"),
-    Path.home() / ".landserm" / ".env",
-    Path.cwd() / ".env"
-]
+# Load environment variables once
+_env_loaded = False
 
-for env_file in env_paths:
-    try:
-        if env_file.exists():
-            load_dotenv(env_file)
-            logger.info(f"Loaded env from {env_file}")
-            break
-    except PermissionError:
-        logger.error(f"No permission to read {env_file}. Skipping.")
-        continue
-else:
+def loadEnvironment():
+    """Load environment variables from .env file. Called automatically on first import."""
+    global _env_loaded
+    
+    if _env_loaded:
+        return
+    
+    env_paths = [
+        Path("/etc/landserm/.env"),
+        Path.home() / ".landserm" / ".env",
+        Path.cwd() / ".env"
+    ]
+    
+    for env_file in env_paths:
+        try:
+            if env_file.exists():
+                load_dotenv(env_file)
+                logger.info(f"Loaded env from {env_file}")
+                _env_loaded = True
+                return
+        except PermissionError:
+            logger.error(f"No permission to read {env_file}. Skipping.")
+            continue
+    
     logger.warning("No .env file found, using defaults")
+    _env_loaded = True
+
+# Load environment on module import
+loadEnvironment()
 
 landsermRoot = str(Path(__file__).resolve().parents[2])
 defaultConfigBase = landsermRoot + "/config-template/"

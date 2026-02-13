@@ -70,7 +70,7 @@ class ConfigPush(BaseModel):
 
 class ConfigLog(BaseModel):
     enabled: bool
-    folder_path: str = "/var/log/"
+    folder_path: str = "/var/log/landserm/"
 
     @model_validator(mode='after')
     def validate_configuration(self):

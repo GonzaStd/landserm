@@ -45,7 +45,7 @@ initialStates = checkStatus(servicesConfig) + checkAutoStart(servicesConfig)  # 
 for event in initialStates:
     lastSystemdInfo[event.subject][event.kind] = event.systemdInfo
 
-logger.info("Initial states:", Pretty(lastSystemdInfo))
+logger.info(f"Initial states: {Pretty(lastSystemdInfo)}")
 policiesIndex = policiesIndexation()
 
 def handleDbus(msg):

@@ -39,10 +39,16 @@ fi
 
 pip uninstall -y landserm
 
-read -p "Remove data and configuration? (y/n) " -r
+read -p "Remove landserm program? (No configuration) (y/n) " -r
 echo
+
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     rm -rf /opt/landserm
+fi
+
+read -p "Remove configuration? (y/n) " -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
     rm -rf /var/log/landserm
     rm -rf /etc/landserm
     echo -e "${GREEN}Data removed${NC}"

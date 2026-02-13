@@ -38,3 +38,4 @@ def getLogger(context: str = "daemon"):
     consoleHandler.setFormatter(formatter)
     _logger.addHandler(consoleHandler)
     
+    return logging.LoggerAdapter(_logger, {'context': context})

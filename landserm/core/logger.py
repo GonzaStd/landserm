@@ -14,6 +14,7 @@ def getLogger(context: str = "daemon"):
     _logger = logging.getLogger("landserm")
     _logger.setLevel(logging.DEBUG)
     _logger.handlers = []
+    _logger.propagate = False  # Don't propagate to root logger (prevents duplication)
 
     logDirectory = "/var/log/landserm/"
 

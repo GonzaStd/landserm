@@ -2,6 +2,7 @@ import re
 from dbus_next import Message
 from dbus_next.constants import MessageType, BusType
 from dbus_next.aio import MessageBus
+import asyncio
 SYSTEMD_NAME = "org.freedesktop.systemd1"
 SYSTEMD_PATH = "/org/freedesktop/systemd1"
 
@@ -33,7 +34,14 @@ def unescape_unit_filename(escaped: str) -> str:
     # {2} means 2 digits following that same pattern
     return re.sub(r"_([0-9a-fA-F]{2})", replace, escaped) 
 
-async def listenDbusMessages(callback):
+async def listenDbusMessages(callback, shutdown_event):
+    """
+    Listen to D-Bus messages and call callback for each relevant message.
+    
+    Args:
+        callback: Function to call with each D-Bus message
+        shutdown_event: asyncio.Event to signal when to stop listening
+    """
     bus = await MessageBus(bus_type=BusType.SYSTEM).connect()
 
     matchRule = f"type='signal',sender='{SYSTEMD_NAME}',interface='org.freedesktop.DBus.Properties'" # arg='value'
@@ -62,4 +70,21 @@ async def listenDbusMessages(callback):
 
     bus.add_message_handler(handler)
 
-    await bus.wait_for_disconnect()
+    try:
+        disconnect_task = asyncio.create_task(bus.wait_for_disconnect())
+        shutdown_task = asyncio.create_task(shutdown_event.wait())
+        
+        done, pending = await asyncio.wait(
+            [disconnect_task, shutdown_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+    finally:
+        bus.disconnect()
+        await asyncio.sleep(0.1)

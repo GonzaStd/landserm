@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from os import environ as env
 from os import path as osPath
 from pathlib import Path
-from typing import Union
+from typing import Union, Type, Literal
 from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, domains, policies
 from landserm.core.logger import getLogger
@@ -88,9 +88,7 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
             logger.warning(f"{file} is not in path: {configFolderPath}")
     return filesPath
         
-
-def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]:
-
+def loadSchemaClass(configType: Literal["delivery", "domains", "policies"], domain: str = None, getConfig: bool = False)-> Type[Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]]:
     configModule = importlib.import_module(f"landserm.config.schemas.{configType}")
 
     if configType == "delivery":
@@ -104,6 +102,17 @@ def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryCo
         fileName = domain
         configPaths = resolveConfigPath(fileName, f"{configType}/")
         SchemaClass = getattr(configModule, f"selectDomain")(domain)
+    if not getConfig:
+        return SchemaClass
+    else:
+        return SchemaClass, configPaths, fileName
+
+def loadConfig(configType: Literal["delivery", "domains", "policies"], domain: str = None) -> Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]:
+  
+    if domain and domain not in DOMAIN_NAMES:
+        raise ValueError(f"Invalid domain: {domain}. Valid domains are: {', '.join(DOMAIN_NAMES)}")
+    
+    SchemaClass, configPaths, fileName = loadSchemaClass(configType, domain, getConfig=True)
 
     with open(configPaths[fileName]) as f:
         data = yaml.safe_load(f)
@@ -112,7 +121,10 @@ def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryCo
 
 
 
-def saveConfig(configType: str, configData, domain: str = None):
+def saveConfig(configType: Literal["delivery", "domains", "policies"], 
+               configData: Type[Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]],
+               domain: str = None):
+    
     if configType == "delivery":
         fileName = configType
         configPaths = resolveConfigPath(fileName)
@@ -128,7 +140,8 @@ def saveConfig(configType: str, configData, domain: str = None):
     if hasattr(configData, 'model_dump'):
         data = configData.model_dump()
     else:
-        data = configData
+        if isinstance(configData, dict): # This should be a dict
+            data = configData 
     
     with open(configPaths[fileName], "w") as f:
         yaml.safe_dump(data, f)

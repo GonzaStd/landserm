@@ -1,36 +1,84 @@
-import json
 import click
+import questionary
+from typing import Literal
 from rich.pretty import Pretty
 from landserm.config.system import *
-from landserm.config.loader import loadConfig, saveConfig
+from landserm.config.loader import loadConfig, saveConfig, loadSchemaClass
+from landserm.cli.interactions import listEdit, getObjectAttribute, setObjectAttribute
 import landserm.cli.completers as complete
 
-def showConfig(configType: str, domain: str = None):
+def showConfig(configType: Literal["delivery", "domains", "policies"], domain: str = None):
     configType = configType.lower()
 
     if not domain:
         click.echo(f"{configType.capitalize()} config")
 
     if configType == "delivery":
-        configData = loadConfig(configType)
+        configObject = loadConfig(configType)
     else:
         if domain:
             click.echo(f"{configType.capitalize} config for {domain.upper()}")
-            configData = loadConfig(configType, domain.lower())
+            configObject = loadConfig(configType, domain.lower())
         else:
             for domain in complete.DOMAIN_NAMES:
                 click.echo(f"DOMAIN: {domain.capitalize()}")
-                configData = loadConfig("domains", domain.lower())
+                configObject = loadConfig("domains", domain.lower())
 
-    click.echo(Pretty(configData.model_dump(), expand_all=True))
+    click.echo(Pretty(configObject.model_dump(), expand_all=True))
 
-def listConfig(configType: str, domain: str = None):
+def listConfig(configType: Literal["delivery", "domains", "policies"], domain: str = None):
     configType = configType.lower()
     if not domain:
         click.echo(complete.DOMAIN_NAMES)
     else:
-        dictConfigData = loadConfig(configType, domain).model_dump()
-        click.echo(dictConfigData.keys())
+        dictConfig = loadConfig(configType, domain).model_dump()
+        click.echo(dictConfig.keys())
+
+def editConfig(configType: Literal["delivery", "domains", "policies"], field, domain: str = None):
+    """
+    Edit any type of configuration.
+
+    Examples:
+        landserm config <domains|policies> edit --domain services
+        landserm config delivery edit oled.driver
+    """
+    try:
+        configObject = loadConfig(configType, domain)
+
+        value = getObjectAttribute(configObject, path=field)
+
+        if not field:
+            click.echo("Available fields (navigate inside them with dot notation if field is a dict):")
+            schemaClass = loadSchemaClass(configType, domain)
+            for key in schemaClass.model_fields.keys():
+                click.echo(f"   - {key}")
+            return
+        
+        if isinstance(value, list):
+            newValue = listEdit(value)
+
+        elif isinstance(value, bool):
+            options = ["true", "t", "false", "f"]
+            newValue = str(questionary.text(f"Choose boolean (True or False) for {field} [{value}]").ask()).lower()
+            if newValue in options:
+                index = options.index(newValue)
+                if index <= 1:
+                    newValue = True
+                elif index >= 2:
+                    newValue = False
+            elif newValue.strip == "":
+                newValue = value
+            else:
+                raise ValueError(f"{newValue} value is invalid. Please choose between True and False (your field is a boolean)")
+        
+        else:
+            newValue = questionary.text(f"New value").ask()
+
+        newConfig = setObjectAttribute(configObject, path=field, newValue=newValue)
+        saveConfig(configType, newConfig, domain)
+        click.echo("Config saved")
+    except Exception as e:
+        click.echo(f"Error: {e}")
 # ROOT
 
 @click.group()
@@ -55,6 +103,12 @@ def show(domain: str = None):
 def list(domain: str):
     listConfig("policies", domain)
 
+@policies.command()
+@click.option("--domain", required=True, autocompletion=complete.domains)
+@click.argument("field", required=False)
+def edit(domain: str, field: str = None):
+    editConfig("policies", field, domain)
+
 # DELIVERY CONFIG
 
 @config.group()
@@ -68,9 +122,9 @@ def show(method: str = None):
     if not method:
         showConfig("delivery")
     else:
-        dictConfigDelivery = loadConfig("delivery").model_dump()
+        dictConfig = loadConfig("delivery").model_dump()
         click.echo(f"Delivery config for {method}")
-        click.echo(Pretty(dictConfigDelivery.get(method)))
+        click.echo(Pretty(dictConfig.get(method)))
 
 @delivery.command()
 @click.option("--method", required=False, autocompeltion=complete.deliveryMethods)
@@ -78,8 +132,14 @@ def list(method: str = None):
     if not method:
         click.echo(complete.DELIVERY_METHODS)
     else:
-        dictConfigDelivery = loadConfig("delivery").model_dump()
-        click.echo(dictConfigDelivery.get(method).keys())
+        for modelMethod, fieldInfo in delivery.DeliveryConfig.model_fields.items():
+            if modelMethod == method:
+                click.echo(fieldInfo.annotation.model_fields.keys()) 
+
+@delivery.command()
+@click.argument("field", required=False)
+def edit(domain: str, field: str = None):
+    editConfig("delivery", field, domain)
 
 
 # DOMAINS CONFIG
@@ -98,3 +158,9 @@ def show(domain: str = None):
 @click.option("--domain", required=False, autocompletion=complete.domains)
 def list(domain: str = None):
     listConfig("domains", domain)
+
+@domains.command()
+@click.option("--domain", required=True, autocompletion=complete.domains)
+@click.argument("field", required=False)
+def edit(domain: str, field: str = None):
+    editConfig("domains", field, domain)

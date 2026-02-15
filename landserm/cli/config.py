@@ -1,79 +1,100 @@
-import click, yaml
-from rich import print
+import json
+import click
 from rich.pretty import Pretty
-from os.path import abspath
 from landserm.config.system import *
-from landserm.semantics.types import parseValue
-from landserm.config.loader import domainsConfigPaths, loadConfig, saveConfig, getSchema, domainNames
+from landserm.config.loader import loadConfig, saveConfig
+import landserm.cli.completers as complete
+
+def showConfig(configType: str, domain: str = None):
+    configType = configType.lower()
+
+    if not domain:
+        click.echo(f"{configType.capitalize()} config")
+
+    if configType == "delivery":
+        configData = loadConfig(configType)
+    else:
+        if domain:
+            click.echo(f"{configType.capitalize} config for {domain.upper()}")
+            configData = loadConfig(configType, domain.lower())
+        else:
+            for domain in complete.DOMAIN_NAMES:
+                click.echo(f"DOMAIN: {domain.capitalize()}")
+                configData = loadConfig("domains", domain.lower())
+
+    click.echo(Pretty(configData.model_dump(), expand_all=True))
+
+def listConfig(configType: str, domain: str = None):
+    configType = configType.lower()
+    if not domain:
+        click.echo(complete.DOMAIN_NAMES)
+    else:
+        dictConfigData = loadConfig(configType, domain).model_dump()
+        click.echo(dictConfigData.keys())
+# ROOT
 
 @click.group()
 def config():
+    """Manage config for domains, policies or delivery methods."""
     pass
 
-@config.command()
-@click.argument("domain", required=False)
-@click.argument("unit", required=False)
-def show(domain: str = None, unit: str = None):
-    if domain:
-        domain = domain.lower()
-        print(domain.upper())
-        configData = loadConfig(domain, domainsConfigPaths)
-        print(Pretty(configData, expand_all=True))
+# POLICIES CONFIG
+
+@config.group()
+def policies():
+    """Manage policies for each domain"""
+    pass
+
+@policies.command()
+@click.option("--domain", required=False, autocompletion=complete.domains)
+def show(domain: str = None):
+    showConfig("policies", domain)
+
+@policies.command()
+@click.option("--domain", required=True, autocompletion=complete.domains)
+def list(domain: str):
+    listConfig("policies", domain)
+
+# DELIVERY CONFIG
+
+@config.group()
+def delivery():
+    """Manage settings for each delivery method (push urls, OLED properties, etc)"""
+    pass
+
+@delivery.command()
+@click.option("--method", required=False, autocompeltion=complete.deliveryMethods)
+def show(method: str = None):
+    if not method:
+        showConfig("delivery")
     else:
-        for domain in domainNames:
-            configData = loadConfig(domain, domainsConfigPaths)
-            print(Pretty(configData, expand_all=True))
+        dictConfigDelivery = loadConfig("delivery").model_dump()
+        click.echo(f"Delivery config for {method}")
+        click.echo(Pretty(dictConfigDelivery.get(method)))
 
-@config.command()
-@click.argument("keyPath", required=True)
-@click.argument("value", required=True)
-def set(keyPath, value):
-    keys = keyPath.split(".") # A list of all the keys (indeed the path) to the config parameter/field.
-    domain = keys[0]
-    keys = keys[1:] # domain key removed.
+@delivery.command()
+@click.option("--method", required=False, autocompeltion=complete.deliveryMethods)
+def list(method: str = None):
+    if not method:
+        click.echo(complete.DELIVERY_METHODS)
+    else:
+        dictConfigDelivery = loadConfig("delivery").model_dump()
+        click.echo(dictConfigDelivery.get(method).keys())
 
-    configData = loadConfig(domain, domainsConfigPaths)
-    configMod =  configData # Here will remain the data we'll modify.
 
-    schemaPath = getSchema(domain) # Here is the whole schema, that's were we start
-    for key in keys:
-        schemaPath = schemaPath[key] # This goes through each key that leads us to the configuration field
-    fieldType = schemaPath["type"] # We access the type that this field should receive
-    parsedValues, invalidValues, innerType = parseValue(value, fieldType)
+# DOMAINS CONFIG
 
-    for key in keys[:-1]: # This goes through each key except the the last one
-        configMod = configMod[key]
-    """
-    We need the last key to mutate the field from the same tree
-    otherwise we would have copy the value from the field to a new variable
-    and rewrite the new variable with a new value (useless)
-    """
-    lastKey = keys[-1]
-    if (fieldType == "bool"):
-        if (len(parsedValues)==1):
-            configMod[lastKey] = parsedValues[0]
-        else:
-            print("Invalid value, you should use true/false instead.")
+@config.group()
+def domains():
+    """Manage settings for each domain. (services you want to listen to)"""
+    pass
 
-    if (fieldType.startswith("list")):
-            if (invalidValues):
-                print(f"This values were invalid and aren't saved: {str(invalidValues)[1:-1]}")
+@domains.command()
+@click.option("--domain", required=False, autocompletion=complete.domains)
+def show(domain: str = None):
+    showConfig("domains", domain)
 
-                if (innerType == "partuuid"):
-                    getPartitions()
-
-                if (innerType == "service"):
-                    print("For the next question, consider your terminal buffer size.")
-                    a = input("¿Do you want to see your services? y to proceed, any keyword to skip: ") 
-                    if (a.lower == "y"):
-                        print("This are your services (systemctl list-unit-files)")
-                        print(getServices())
-
-            if (innerType == "path"):
-                absolutePaths = []
-                for path in parsedValues:
-                    absolutePaths.append(abspath(path))
-                parsedValues = absolutePaths
-            configMod[lastKey] = parsedValues
-            
-    saveConfig(domain, domainsConfigPaths, configData)
+@domains.command()
+@click.option("--domain", required=False, autocompletion=complete.domains)
+def list(domain: str = None):
+    listConfig("domains", domain)

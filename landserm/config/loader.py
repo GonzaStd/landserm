@@ -10,6 +10,8 @@ from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, domains, policies
 from landserm.core.logger import getLogger
 
+DOMAIN_NAMES = ["services"]
+
 logger = getLogger(context="config")
 
 # Load environment variables once
@@ -86,7 +88,6 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
             logger.warning(f"{file} is not in path: {configFolderPath}")
     return filesPath
         
-domainNames = ["services"]
 
 def loadConfig(configType: str, domain: str = None) -> Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]:
 

@@ -1,4 +1,4 @@
-from landserm.config.loader import loadConfig, domainNames
+from landserm.config.loader import loadConfig, DOMAIN_NAMES
 from landserm.config.schemas.policies import ThenBase
 from landserm.core.actions import executeActions
 from landserm.core.events import Event
@@ -15,7 +15,7 @@ def policiesIndexation() -> dict:
     index = dict()
 
     # This will be necessary for version 2 (I'm talking about using other domains)
-    for domain in domainNames: # domains -> list of strings with the name of each domain.
+    for domain in DOMAIN_NAMES: # domains -> list of strings with the name of each domain.
         domainConfig = loadConfig("domains", domain)
         if not domainConfig.enabled: # If domain is disabled, do not check its policies.
             continue

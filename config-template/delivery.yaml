@@ -1,20 +1,22 @@
 oled:
   enabled: false
   driver: "sh1106"
-  device: "/dev/12c-1"
+  port: 1
+  address: "0x3C"
+  device: "/dev/i2c-1"
   width: 128
   height: 64
   font_size: 11
 
 push:
   ntfy:
-    enabled: true
+    enabled: false
     server: "https://ntfy.sh"
   gotify:
     enabled: false
     server: "https://localhost:8080"
   webhook:
-    enabled: true
+    enabled: false
 
 logs:
   enabled: true

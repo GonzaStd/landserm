@@ -1,18 +1,11 @@
-policy-name:
-  enabled: true
+example-policy:
+  enabled: false
   when:
     kind: "status"
-    subject: "cron" # Example service. It is service name without `.service`
+    subject: "cron"
     systemdInfo: 
       active: "inactive"
   then:
-      priority: "high"
-      script: 
-        name: "script-example"
-        args: ["$domain", "$subject", "$kind", "$systemdInfo.active", "$systemdInfo.substate"] # Example arguments
-      log:
-        enabled: true
-      push: ["ntfy", "webhook"]
-      oled:
-        message: "$domain | $subject\n $kind:\n $systemdInfo.active\n $systemdInfo.substate"
-        duration: 5
+    priority: "default"
+    log:
+      enabled: true

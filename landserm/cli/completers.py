@@ -1,14 +1,15 @@
 from landserm.config.loader import DOMAIN_NAMES, loadSchemaClass
 from landserm.config.schemas import delivery
+import click
 DELIVERY_METHODS = delivery.DeliveryConfig.model_fields.keys()
 
-def domains(ctx, args, incomplete):
+def domains(ctx, param, incomplete):
     """Complete domain names"""
-    return [domain for domain in DOMAIN_NAMES if domain.startswith(incomplete)]
+    return [click.shell_completion.CompletionItem(domain) for domain in DOMAIN_NAMES if domain.startswith(incomplete)]
 
-def deliveryMethods(ctx, args, incomplete):
+def deliveryMethods(ctx, param, incomplete):
     """Complete delivery methods"""
-    return [method for method in DELIVERY_METHODS if method.startswith(incomplete)]
+    return [click.shell_completion.CompletionItem(method) for method in DELIVERY_METHODS if method.startswith(incomplete)]
 
 """ 
 def pathToDomains(ctx, incomplete):
@@ -30,7 +31,7 @@ configFunc = switchConfigType.get(configType)
 return configFunc(ctx, incomplete)
 """
 
-def pathToAttribute(ctx, args, incomplete):
+def pathToAttribute(ctx, param, incomplete):
     """Complete path to attribute with dot notation, depending on the config type."""
     configType = ctx.invoked_subcommand
     domain = ctx.params.get("domain")

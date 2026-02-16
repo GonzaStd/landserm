@@ -1,6 +1,6 @@
 import click
 import questionary
-from typing import Literal
+from typing import Literal, List
 from rich.pretty import pprint
 from landserm.config.system import *
 from landserm.config.loader import loadConfigRaw, saveConfig, loadSchemaClass
@@ -32,7 +32,7 @@ def listConfig(configType: Literal["delivery", "domains", "policies"], domain: s
         click.echo(complete.DOMAIN_NAMES)
     else:
         configDict = loadConfigRaw(configType, domain)
-        click.echo(list(configDict.keys()))
+        click.echo(configDict.keys())
 
 def editConfig(configType: Literal["delivery", "domains", "policies"], field, domain: str = None):
     """
@@ -43,10 +43,6 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
         landserm config delivery edit oled.driver
     """
     try:
-        configDict = loadConfigRaw(configType, domain)
-
-        value = getValueByPath(configDict, path=field)
-
         if not field:
             click.echo("Available fields (navigate inside them with dot notation if field is a dict):")
             schemaClass = loadSchemaClass(configType, domain)
@@ -54,7 +50,12 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
                 click.echo(f"   - {key}")
             return
         
-        if isinstance(value, list):
+        configDict = loadConfigRaw(configType, domain)
+
+        value = getValueByPath(configDict, path=field)
+
+        
+        if isinstance(value, List):
             newValue = listEdit(value)
 
         elif isinstance(value, bool):
@@ -79,6 +80,7 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
         click.echo(f"Changed from {value} to {newValue}. Config saved.")
     except Exception as e:
         click.echo(f"Error: {e}")
+
 # ROOT
 
 @click.group()

@@ -67,7 +67,7 @@ fi
 chown -R landserm:landserm .venv
 echo -e "${GREEN}.venv ownership set to landserm:landserm${NC}"
 echo -e "${YELLOW}Connecting to virtual env...${NC}"
-source .venv/bin/activate
+source "${VENV_PATH}/bin/activate"
 echo -e "${GREEN}Sucessfully connected!${NC}"
 echo -e "${GREEN}Virtual environment is installed and set!${NC}"
 echo -e "${YELLOW}Updating dependencies for landserm package...${NC}"
@@ -90,7 +90,6 @@ chown root:root /usr/local/bin/landserm
 echo -e "${GREEN}landserm CLI script installed in /usr/local/bin!${NC}"
 
 echo -e "${YELLOW}Setting up bash completion for landserm...${NC}"
-source .venv/bin/activate
 _LANDSERM_COMPLETE=bash_source /usr/local/bin/landserm | tee /etc/bash_completion.d/landserm > /dev/null
 chmod 644 /etc/bash_completion.d/landserm
 echo -e "${GREEN}Bash completion installed!${NC}"

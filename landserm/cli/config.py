@@ -1,6 +1,6 @@
 import click
 import questionary
-from typing import Literal, List
+from typing import Literal
 from rich.pretty import pprint
 from landserm.config.system import *
 from landserm.config.loader import loadConfigRaw, saveConfig, loadSchemaClass
@@ -43,43 +43,69 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
         landserm config delivery edit oled.driver
     """
     try:
-        if not field:
-            click.echo("Available fields (navigate inside them with dot notation if field is a dict):")
-            schemaClass = loadSchemaClass(configType, domain)
-            for key in schemaClass.model_fields.keys():
-                click.echo(f"   - {key}")
-            return
-        
         configDict = loadConfigRaw(configType, domain)
 
+        if not field:
+            if configType == "policies":
+                # Show available policies
+                click.echo("Available policies:")
+                policyNames = list(configDict.keys())
+                for policyName in policyNames:
+                    click.echo(f"   - {policyName}")
+                click.echo("\nUsage: landserm config policies edit --domain <domain> <policy-name>.<field>")
+                click.echo("Examples:")
+                click.echo("   landserm config policies edit --domain services policy-name.enabled")
+                click.echo("   landserm config policies edit --domain services policy-name.then.priority")
+            else:
+                # Show schema fields
+                click.echo("Available fields (navigate inside them with dot notation if field is a dict):")
+                schemaClass = loadSchemaClass(configType, domain) # This is not supposed to validate
+                for key in schemaClass.model_fields.keys():
+                    click.echo(f"   - {key}")
+            return
+        
         value = getValueByPath(configDict, path=field)
 
+        newValue = None
         
-        if isinstance(value, List):
+        if isinstance(value, list):
             newValue = listEdit(value)
 
         elif isinstance(value, bool):
             options = ["true", "t", "false", "f"]
-            newValue = str(questionary.text(f"Choose boolean (True or False) for {field} [{value}]").ask()).lower()
+            newValue = str(questionary.text(f"Choose boolean (True or False) for {field} [{value}]:").ask()).lower()
             if newValue in options:
                 index = options.index(newValue)
-                if index <= 1:
-                    newValue = True
-                elif index >= 2:
-                    newValue = False
-            if newValue.strip() == "":
+                newValue = True if index <= 1 else False
+            elif newValue.strip() == "":
                 newValue = value
             else:
-                raise ValueError(f"\"{newValue}\" value is invalid. Please choose between True and False (your field is a boolean)")
+                raise ValueError(f"\"{newValue}\" value is invalid. Please choose between True and False")
+        elif isinstance(value, dict):
+            click.echo(f"\"{field}\" is a dictionary. Your path should follow some of this: ")
+            for key in value:
+                click.echo(f" .{key}")
+        elif isinstance(value, str):
+            answer = str(questionary.text(f"Enter the new value for {field} [{value}]").ask())
+            newValue = value if answer.strip() == "" else answer
         
-        else:
-            newValue = questionary.text(f"New value").ask()
+        if newValue is None:
+            raise ValueError(f"Couldn't find method to modify this keypath field: {field}\n Its type is: {type(value)}")
 
         newConfigDict = setValueByPath(configDict, path=field, newValue=newValue)
+
+        # VALIDATION
+
+        try:
+            schemaClass = loadSchemaClass(configType, domain)
+            schemaClass(**newConfigDict)
+        except Exception as validationError:
+            raise ValueError(f"Validation error: {validationError}")
+
         saveConfig(configType, newConfigDict, domain)
         click.echo(f"Changed from {value} to {newValue}. Config saved.")
     except Exception as e:
-        click.echo(f"Error: {e}")
+        click.echo(f"Edit config error: {e}")
 
 # ROOT
 
@@ -100,9 +126,9 @@ def policies():
 def show(domain: str = None):
     showConfig("policies", domain)
 
-@policies.command()
+@policies.command(name="list")
 @click.option("--domain", required=True, shell_complete=complete.domains)
-def list(domain: str):
+def listPolicies(domain: str):
     listConfig("policies", domain)
 
 @policies.command()
@@ -128,9 +154,9 @@ def show(method: str = None):
         click.echo(f"Delivery config for {method}")
         pprint(configDict.get(method), expand_all=True)
 
-@delivery.command()
+@delivery.command(name="list")
 @click.option("--method", required=False, shell_complete=complete.deliveryMethods)
-def list(method: str = None):
+def listDelivery(method: str = None):
     if not method:
         click.echo(complete.DELIVERY_METHODS)
     else:
@@ -156,9 +182,9 @@ def domains():
 def show(domain: str = None):
     showConfig("domains", domain)
 
-@domains.command()
+@domains.command(name="list")
 @click.option("--domain", required=False, shell_complete=complete.domains)
-def list(domain: str = None):
+def listDomains(domain: str = None):
     listConfig("domains", domain)
 
 @domains.command()

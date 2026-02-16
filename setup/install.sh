@@ -99,6 +99,16 @@ echo -e "${YELLOW}Installing systemd service...${NC}"
 cp $SETUP_DIR/landserm.service /etc/systemd/system
 systemctl daemon-reload
 echo -e "${GREEN}Service Installed!${NC}"
+
+echo -e "${YELLOW}Configuring sudoers for landserm CLI...${NC}"
+cat > /etc/sudoers.d/landserm <<EOF
+# Allow users in sudo/wheel group to run landserm CLI as landserm user without password
+%sudo ALL=(landserm) NOPASSWD: /opt/landserm/.venv/bin/landserm
+%wheel ALL=(landserm) NOPASSWD: /opt/landserm/.venv/bin/landserm
+EOF
+chmod 440 /etc/sudoers.d/landserm
+echo -e "${GREEN}Sudoers configured!${NC}"
+
 read -p "Do you want to enable and start the service now? (y/n) " -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then

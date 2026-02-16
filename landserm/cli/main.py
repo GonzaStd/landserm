@@ -1,5 +1,7 @@
 import click
 import sys
+import os
+import pwd
 import traceback
 
 @click.group()
@@ -7,6 +9,17 @@ import traceback
 @click.pass_context
 def cli(ctx, debug):
     """Landserm CLI"""
+    current_uid = os.geteuid()    
+
+    try:
+        landserm_uid = pwd.getpwnam('landserm').pw_uid
+    except KeyError:
+        landserm_uid = None
+    
+    if current_uid != 0 and current_uid != landserm_uid:
+        click.echo("Error: landserm CLI must run as root or landserm user.", err=True)
+        sys.exit(1)
+    
     ctx.ensure_object(dict)
     ctx.obj['debug'] = debug
 

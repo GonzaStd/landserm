@@ -52,6 +52,7 @@ if [ -f "/usr/local/bin/landserm-daemon" ]; then
     echo -e "${GREEN}Daemon wrapper removed${NC}"
 fi
 
+
 pip uninstall -y landserm
 
 read -p "Remove landserm program? (No configuration) (y/n) " -r
@@ -74,6 +75,12 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     userdel landserm
     echo -e "${GREEN}User removed${NC}"
+
+    if [ -f "/etc/sudoers.d/landserm" ]; then
+        rm /etc/sudoers.d/landserm
+        echo -e "${GREEN}Sudoers configuration removed${NC}"
+    fi
+
 fi
 
 echo -e "${GREEN}=== Uninstallation complete ===${NC}"

@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, field_validator, model_validator, RootModel
+from pydantic import Field, field_validator, model_validator, RootModel
+from landserm.config.schemas.main import ValidateOnEnable as BaseModel
 from typing import Optional, List, Dict, Literal, Union
 from landserm.config.validators import isService
 

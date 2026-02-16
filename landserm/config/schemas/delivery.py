@@ -1,6 +1,7 @@
 from os import getenv as env
 from typing import Optional, Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, model_validator
+from landserm.config.schemas.main import ValidateOnEnable as BaseModel
 from landserm.config.validators import isPath
 
 class ConfigOled(BaseModel):

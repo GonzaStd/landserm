@@ -31,8 +31,11 @@ def getLogger(context: str = "daemon"):
 
     formatter = logging.Formatter(fmt=logFormat, datefmt=dateFormat)
 
-    fileHandler = logging.handlers.RotatingFileHandler(filename=logFilePath, maxBytes=10*1024*1024, backupCount=5) # maxBytes = 10 MegaBytes
-    fileHandler.setFormatter(formatter)
-    _logger.addHandler(fileHandler)
+    try:
+        fileHandler = logging.handlers.RotatingFileHandler(filename=logFilePath, maxBytes=10*1024*1024, backupCount=5) # maxBytes = 10 MegaBytes
+        fileHandler.setFormatter(formatter)
+        _logger.addHandler(fileHandler)
+    except PermissionError:
+        pass
     
     return logging.LoggerAdapter(_logger, {'context': context})

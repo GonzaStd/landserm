@@ -37,6 +37,21 @@ if [ -f "/etc/systemd/system/landserm.service" ]; then
     echo -e "${GREEN}Service removed${NC}"
 fi
 
+if [ -f "/etc/bash_completion.d/landserm" ]; then
+    rm /etc/bash_completion.d/landserm
+    echo -e "${GREEN}Bash completion removed${NC}"
+fi
+
+if [ -f "/usr/local/bin/landserm" ]; then
+    rm /usr/local/bin/landserm
+    echo -e "${GREEN}CLI wrapper removed${NC}"
+fi
+
+if [ -f "/usr/local/bin/landserm-daemon" ]; then
+    rm /usr/local/bin/landserm-daemon
+    echo -e "${GREEN}Daemon wrapper removed${NC}"
+fi
+
 pip uninstall -y landserm
 
 read -p "Remove landserm program? (No configuration) (y/n) " -r

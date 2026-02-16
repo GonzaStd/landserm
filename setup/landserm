@@ -1,5 +1,4 @@
 #!/bin/bash
 cd /opt/landserm
 source /opt/landserm/.venv/bin/activate
-export PYTHONPATH="/opt/landserm"
-exec python3 /opt/landserm/landserm/cli/main.py "$@"
+exec python3 -m landserm.cli.main "$@"

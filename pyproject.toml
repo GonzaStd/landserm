@@ -12,7 +12,7 @@ landserm = "landserm.cli.main:cli"
 landserm-daemon = "landserm.daemon.daemon:main"
 
 [tool.setuptools]
-packages = ["landserm"]
+packages = {find = {}}
 
 [tool.setuptools.package-data]
 landserm = ["py.typed"]

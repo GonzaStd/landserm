@@ -63,8 +63,12 @@ def loadEnvironment():
 # Load environment on module import
 loadEnvironment()
 
-landsermRoot = str(Path(__file__).resolve().parents[2])
-defaultConfigBase = landsermRoot + "/config-template/"
+if osPath.isdir("/etc/landserm"):
+    defaultConfigBase = "/etc/landserm/"
+else:
+    landsermRoot = str(Path(__file__).resolve().parents[2])
+    defaultConfigBase = landsermRoot + "/config-template/"
+
 chosenConfigBase = env.get("LANDSERM_CONFIG_PATH", defaultConfigBase)
 
 def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict: 

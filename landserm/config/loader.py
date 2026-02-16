@@ -24,6 +24,10 @@ def loadEnvironment():
     if _env_loaded:
         return
     
+    if env.get("_LANDSERM_COMPLETE"):
+        _env_loaded = True
+        return
+    
     env_paths = [
         Path("/etc/landserm/.env"),
         Path.home() / ".landserm" / ".env",

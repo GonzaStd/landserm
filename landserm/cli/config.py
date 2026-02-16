@@ -94,17 +94,17 @@ def policies():
     pass
 
 @policies.command()
-@click.option("--domain", required=False, autocompletion=complete.domains)
+@click.option("--domain", required=False, shell_complete=complete.domains)
 def show(domain: str = None):
     showConfig("policies", domain)
 
 @policies.command()
-@click.option("--domain", required=True, autocompletion=complete.domains)
+@click.option("--domain", required=True, shell_complete=complete.domains)
 def list(domain: str):
     listConfig("policies", domain)
 
 @policies.command()
-@click.option("--domain", required=True, autocompletion=complete.domains)
+@click.option("--domain", required=True, shell_complete=complete.domains)
 @click.argument("field", required=False)
 def edit(domain: str, field: str = None):
     editConfig("policies", field, domain)
@@ -117,7 +117,7 @@ def delivery():
     pass
 
 @delivery.command()
-@click.option("--method", required=False, autocompeltion=complete.deliveryMethods)
+@click.option("--method", required=False, shell_complete=complete.deliveryMethods)
 def show(method: str = None):
     if not method:
         showConfig("delivery")
@@ -127,7 +127,7 @@ def show(method: str = None):
         click.echo(Pretty(dictConfig.get(method)))
 
 @delivery.command()
-@click.option("--method", required=False, autocompeltion=complete.deliveryMethods)
+@click.option("--method", required=False, shell_complete=complete.deliveryMethods)
 def list(method: str = None):
     if not method:
         click.echo(complete.DELIVERY_METHODS)
@@ -150,17 +150,17 @@ def domains():
     pass
 
 @domains.command()
-@click.option("--domain", required=False, autocompletion=complete.domains)
+@click.option("--domain", required=False, shell_complete=complete.domains)
 def show(domain: str = None):
     showConfig("domains", domain)
 
 @domains.command()
-@click.option("--domain", required=False, autocompletion=complete.domains)
+@click.option("--domain", required=False, shell_complete=complete.domains)
 def list(domain: str = None):
     listConfig("domains", domain)
 
 @domains.command()
-@click.option("--domain", required=True, autocompletion=complete.domains)
+@click.option("--domain", required=True, shell_complete=complete.domains)
 @click.argument("field", required=False)
 def edit(domain: str, field: str = None):
     editConfig("domains", field, domain)

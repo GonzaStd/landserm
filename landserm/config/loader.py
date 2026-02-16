@@ -119,7 +119,18 @@ def loadConfig(configType: Literal["delivery", "domains", "policies"], domain: s
     
     return SchemaClass(**data)
 
-
+def loadConfigRaw(configType: Literal["delivery", "domains", "policies"], domain: str = None) -> dict:
+    if configType == "delivery":
+        fileName = configType
+        configPaths = resolveConfigPath(fileName)
+    elif configType in ["domains", "policies"]:
+        if not domain:
+            raise ValueError("Domain needed")
+        fileName = domain
+        configPaths = resolveConfigPath(fileName, f"{configType}/")
+    
+    with open(configPaths[fileName]) as f:
+        return yaml.safe_load(f)
 
 def saveConfig(configType: Literal["delivery", "domains", "policies"], 
                configData: Type[Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]],

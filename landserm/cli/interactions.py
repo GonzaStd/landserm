@@ -1,6 +1,5 @@
 import questionary
-from pydantic import ValidationError, BaseModel
-from typing import Type
+from typing import Any
 
 def listEdit(currentList: list[str]) -> list[str]:
     finalList = currentList.copy()
@@ -35,54 +34,57 @@ def listEdit(currentList: list[str]) -> list[str]:
     else:
         return currentList
     
-def getObjectAttribute(object: Type[BaseModel], path: str):
+def getValueByPath(configDict: dict, path: str) -> Any:
     """
-    Access value from a pydantic object attribute using dots notation.
+    Access value from a dict using dot notation path.
 
     Examples:
-        object = ConfigOled(enabled=True, driver="ssd1306")
-        accessObjectPath(object, "enabled")  # Value would be "True" if it says so in delivery.yaml
+        configDict = {"enabled": True, "driver": "ssd1306"}
+        getValueByPath(configDict, "enabled")  # True
 
-        object = DeliveryConfig(oled=ConfigOled(...), push=PushNotify(...))
-        accessObjectPath(object, "oled.enabled")  # True
+        configDict = {"oled": {"enabled": True}, "push": {...}}
+        getValueByPath(configDict, "oled.enabled")  # True
     """
 
     keys = path.split(".")
-    pivot = object
+    pivot = configDict
     
     for key in keys:
-        pivot = getattr(pivot, key, None)
+        if isinstance(pivot, dict):
+            pivot = pivot.get(key)
+        else:
+            raise ValueError(f"Cannot access '{key}' - parent is not a dict")
         
         if pivot is None:
             return None
         
     return pivot
 
-def setObjectAttribute(object, path: str, newValue):
+def setValueByPath(configDict: dict, path: str, newValue: Any) -> dict:
     """
-    Modifies a pydantic object using dots notation.
+    Modifies a dict using dot notation path. Returns a new dict with the modified value.
     """
     keys = path.split(".")
-    pivot = None
-    try: 
-        
-        if getattr(object, "model_dump"):
-            pivot = object.model_dump() # Pydantic Object data (as a dict)
-        else:
-            return 1 # Object parameter is not a pydantic object
-        
-        for key in keys[:-1]: # Navigate to the penultimate level (so it can rewrite the value from the same object, that is, mutate)
-            if key not in pivot:
-                raise ValueError(f"Path '{path}' does not exist")
-            pivot = pivot[key]
-
-        if keys[-1] not in pivot:
-            raise ValueError(f"Field '{keys[-1]}' does not exist in {path}")
-
-        pivot[keys[-1]] = newValue
-
-        newObject = object.__class__(**pivot)
-        return newObject
     
-    except ValidationError as e:
-        raise ValueError(f"Invalid value for '{path}': {e}")
+    if not isinstance(configDict, dict):
+        raise ValueError("configDict must be a dictionary")
+    
+    # Create a shallow copy to avoid mutating the original
+    result = configDict.copy()
+    
+    # Navigate to the penultimate level
+    pivot = result
+    for key in keys[:-1]:
+        if key not in pivot:
+            raise ValueError(f"Path '{path}' does not exist")
+        if not isinstance(pivot[key], dict):
+            raise ValueError(f"Cannot navigate through '{key}' - it's not a dict")
+        # Create a new dict for this level to avoid mutation
+        pivot[key] = pivot[key].copy()
+        pivot = pivot[key]
+
+    if keys[-1] not in pivot:
+        raise ValueError(f"Field '{keys[-1]}' does not exist in '{path}'")
+
+    pivot[keys[-1]] = newValue
+    return result

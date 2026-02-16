@@ -1,10 +1,10 @@
 import click
 import questionary
 from typing import Literal
-from rich.pretty import Pretty
+from rich.pretty import pprint
 from landserm.config.system import *
-from landserm.config.loader import loadConfig, saveConfig, loadSchemaClass
-from landserm.cli.interactions import listEdit, getObjectAttribute, setObjectAttribute
+from landserm.config.loader import loadConfigRaw, saveConfig, loadSchemaClass
+from landserm.cli.interactions import listEdit, getValueByPath, setValueByPath
 import landserm.cli.completers as complete
 
 def showConfig(configType: Literal["delivery", "domains", "policies"], domain: str = None):
@@ -14,25 +14,25 @@ def showConfig(configType: Literal["delivery", "domains", "policies"], domain: s
         click.echo(f"{configType.capitalize()} config")
 
     if configType == "delivery":
-        configObject = loadConfig(configType)
+        configDict = loadConfigRaw(configType)
     else:
         if domain:
-            click.echo(f"{configType.capitalize} config for {domain.upper()}")
-            configObject = loadConfig(configType, domain.lower())
+            click.echo(f"{configType.capitalize()} config for {domain.upper()}")
+            configDict = loadConfigRaw(configType, domain.lower())
         else:
             for domain in complete.DOMAIN_NAMES:
                 click.echo(f"DOMAIN: {domain.capitalize()}")
-                configObject = loadConfig("domains", domain.lower())
+                configDict = loadConfigRaw(configType, domain.lower())
 
-    click.echo(Pretty(configObject.model_dump(), expand_all=True))
+    pprint(configDict, expand_all=True)
 
 def listConfig(configType: Literal["delivery", "domains", "policies"], domain: str = None):
     configType = configType.lower()
     if not domain:
         click.echo(complete.DOMAIN_NAMES)
     else:
-        dictConfig = loadConfig(configType, domain).model_dump()
-        click.echo(dictConfig.keys())
+        configDict = loadConfigRaw(configType, domain)
+        click.echo(list(configDict.keys()))
 
 def editConfig(configType: Literal["delivery", "domains", "policies"], field, domain: str = None):
     """
@@ -43,9 +43,9 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
         landserm config delivery edit oled.driver
     """
     try:
-        configObject = loadConfig(configType, domain)
+        configDict = loadConfigRaw(configType, domain)
 
-        value = getObjectAttribute(configObject, path=field)
+        value = getValueByPath(configDict, path=field)
 
         if not field:
             click.echo("Available fields (navigate inside them with dot notation if field is a dict):")
@@ -66,17 +66,17 @@ def editConfig(configType: Literal["delivery", "domains", "policies"], field, do
                     newValue = True
                 elif index >= 2:
                     newValue = False
-            elif newValue.strip == "":
+            if newValue.strip() == "":
                 newValue = value
             else:
-                raise ValueError(f"{newValue} value is invalid. Please choose between True and False (your field is a boolean)")
+                raise ValueError(f"\"{newValue}\" value is invalid. Please choose between True and False (your field is a boolean)")
         
         else:
             newValue = questionary.text(f"New value").ask()
 
-        newConfig = setObjectAttribute(configObject, path=field, newValue=newValue)
-        saveConfig(configType, newConfig, domain)
-        click.echo("Config saved")
+        newConfigDict = setValueByPath(configDict, path=field, newValue=newValue)
+        saveConfig(configType, newConfigDict, domain)
+        click.echo(f"Changed from {value} to {newValue}. Config saved.")
     except Exception as e:
         click.echo(f"Error: {e}")
 # ROOT
@@ -122,9 +122,9 @@ def show(method: str = None):
     if not method:
         showConfig("delivery")
     else:
-        dictConfig = loadConfig("delivery").model_dump()
+        configDict = loadConfigRaw("delivery")
         click.echo(f"Delivery config for {method}")
-        click.echo(Pretty(dictConfig.get(method)))
+        pprint(configDict.get(method), expand_all=True)
 
 @delivery.command()
 @click.option("--method", required=False, shell_complete=complete.deliveryMethods)
@@ -138,8 +138,8 @@ def list(method: str = None):
 
 @delivery.command()
 @click.argument("field", required=False)
-def edit(domain: str, field: str = None):
-    editConfig("delivery", field, domain)
+def edit(field: str = None):
+    editConfig("delivery", field)
 
 
 # DOMAINS CONFIG

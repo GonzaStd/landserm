@@ -8,11 +8,17 @@ from pathlib import Path
 from typing import Union, Type, Literal
 from landserm.config.validators import isPath
 from landserm.config.schemas import delivery, domains, policies
-from landserm.core.logger import getLogger
 
 DOMAIN_NAMES = ["services"]
 
-logger = getLogger(context="config")
+_logger = None
+
+def _getLogger():
+    global _logger
+    if _logger is None and not env.get("_LANDSERM_COMPLETE"):
+        from landserm.core.logger import getLogger
+        _logger = getLogger(context="config")
+    return _logger
 
 # Load environment variables once
 _env_loaded = False
@@ -38,15 +44,20 @@ def loadEnvironment():
         try:
             if env_file.exists():
                 load_dotenv(env_file)
-                print("\n")
-                logger.info(f"Loaded env from {env_file}")
+                log = _getLogger()
+                if log:
+                    log.info(f"Loaded env from {env_file}")
                 _env_loaded = True
                 return
         except PermissionError:
-            logger.error(f"No permission to read {env_file}. Skipping.")
+            log = _getLogger()
+            if log:
+                log.error(f"No permission to read {env_file}. Skipping.")
             continue
     
-    logger.warning("No .env file found, using defaults")
+    log = _getLogger()
+    if log:
+        log.warning("No .env file found, using defaults")
     _env_loaded = True
 
 # Load environment on module import
@@ -60,8 +71,10 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
     if osPath.isdir(chosenConfigBase):
         configBase = chosenConfigBase
     else:
-        logger.warning(f"Your base config ({chosenConfigBase}) does not exist")
-        logger.info(f"Using {defaultConfigBase}")
+        log = _getLogger()
+        if log:
+            log.warning(f"Your base config ({chosenConfigBase}) does not exist")
+            log.info(f"Using {defaultConfigBase}")
         configBase = defaultConfigBase
 
     files = list()
@@ -89,7 +102,9 @@ def resolveConfigPath(fileNames: list | str, configTailFolder: str = "") -> dict
         if isPath(filePath):
             filesPath[name] = filePath
         else:
-            logger.warning(f"{file} is not in path: {configFolderPath}")
+            log = _getLogger()
+            if log:
+                log.warning(f"{file} is not in path: {configFolderPath}")
     return filesPath
         
 def loadSchemaClass(configType: Literal["delivery", "domains", "policies"], domain: str = None, getConfig: bool = False)-> Type[Union[delivery.DeliveryConfig, domains.domainsConfig, policies.domainsPolicy]]:

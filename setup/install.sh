@@ -83,6 +83,18 @@ chmod 750 /usr/local/bin/landserm-daemon
 chown landserm:landserm /usr/local/bin/landserm-daemon
 echo -e "${GREEN}landserm-daemon script installed in /usr/local/bin with correct owner and permissions!${NC}"
 
+echo -e "${YELLOW}Copying landserm CLI wrapper to /usr/local/bin...${NC}"
+cp $SETUP_DIR/landserm /usr/local/bin/landserm
+chmod 755 /usr/local/bin/landserm
+chown root:root /usr/local/bin/landserm
+echo -e "${GREEN}landserm CLI script installed in /usr/local/bin!${NC}"
+
+echo -e "${YELLOW}Setting up bash completion for landserm...${NC}"
+source .venv/bin/activate
+_LANDSERM_COMPLETE=bash_source landserm | tee /etc/bash_completion.d/landserm > /dev/null
+chmod 644 /etc/bash_completion.d/landserm
+echo -e "${GREEN}Bash completion installed!${NC}"
+
 echo -e "${YELLOW}Installing systemd service...${NC}"
 cp $SETUP_DIR/landserm.service /etc/systemd/system
 systemctl daemon-reload

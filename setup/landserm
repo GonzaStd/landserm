@@ -1,8 +1,10 @@
 #!/bin/bash
 # Automatically run landserm CLI as landserm user for security
-# Preserve completion environment variables
+
+# During bash completion, run directly (no sudo) to preserve environment
 if [[ -n "$_LANDSERM_COMPLETE" ]]; then
-    exec sudo -u landserm _LANDSERM_COMPLETE="$_LANDSERM_COMPLETE" COMP_WORDS="$COMP_WORDS" COMP_CWORD="$COMP_CWORD" /opt/landserm/.venv/bin/landserm "$@"
+    exec /opt/landserm/.venv/bin/landserm "$@"
 else
+    # Normal execution: run as landserm user
     exec sudo -u landserm /opt/landserm/.venv/bin/landserm "$@"
 fi

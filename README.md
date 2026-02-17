@@ -56,7 +56,7 @@ They can configure scripts to execute and arguments based on context variables (
 
 This version has only got one domain: `services`. The code is intended to standardize "domains" for the next version. 
 
-Right now, the only hability of this project is to monitorize d-bus messages looking for systemdInfo of the specified services you configure with `landserm config domains --domain services edit include` and then `landserm config domains --domain services enable`. You can configure policies as mentioned earlier, the only thing is that this is very generic and doesn't have a lot of info. The only "detailed" conditions you'll have are systemdInfo properties:
+Right now, the only hability of this project is to monitorize d-bus messages looking for systemdInfo of the specified services you configure with `landserm config domains edit --domain services  include` and then `landserm config domains edit --domain services enabled`. You can configure policies as mentioned earlier, the only thing is that this is very generic and doesn't have a lot of info. The only "detailed" conditions you'll have are systemdInfo properties:
 
 | Property | Description |
 |----------|-------------|

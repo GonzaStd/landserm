@@ -4,6 +4,7 @@ from typing import Literal
 from rich.pretty import pprint
 from landserm.config.system import *
 from landserm.config.loader import loadConfigRaw, saveConfig, loadSchemaClass
+from landserm.config.schemas.policies import SystemdInfoCondition, ThenBase
 from landserm.cli.interactions import listEdit, getValueByPath, setValueByPath
 import landserm.cli.completers as complete
 
@@ -136,6 +137,121 @@ def listPolicies(domain: str):
 @click.argument("field", required=False)
 def edit(domain: str, field: str = None):
     editConfig("policies", field, domain)
+
+@policies.command()
+@click.option("--domain", required=True, shell_complete=complete.domains)
+def add(domain: str):
+    try:
+        click.echo("You will be able to edit this later.")
+        name = str(questionary.text("Policy Name:").ask())
+        policy = {
+            name: {
+                "enabled": False,
+                "when": {
+                    "kind": "status",
+                    "subject": None
+                },
+                "then": {
+                    "priority": "default",
+                    "log": {
+                        "enabled": True
+                    }
+                }
+            }
+        }
+        if domain == "services":
+            policy[name]["when"]["systemdInfo"] = dict()
+        click.echo("This is your policy right now:")
+        pprint(policy, expand_all=True)
+        click.echo("Choose your subject:")
+        if domain == "services":
+            subject = str(questionary.text("Subject (it must be a systemd service)").ask())     
+            policy[name]["when"]["subject"] = subject
+            domainPolicyClass = loadSchemaClass("policies", domain)
+            domainPolicyClass(**policy)
+            click.echo("This is your policy right now:")
+            pprint(policy, expand_all=True)
+            if questionary.confirm("Do you want to specify a condition from systemdInfo? Y/n:").ask():
+                systemdInfo = {}
+                choices = list(SystemdInfoCondition.model_fields.keys()) + ["[Done]", "[Cancel]"]
+                stop = False
+                while not stop:
+                    propSelection = questionary.select("Choose the property you want to specify:",
+                                    choices=choices).ask()
+                    
+                    if propSelection == "[Done]":
+                        stop = True
+                        save = True
+                    elif propSelection == "[Cancel]":
+                        stop = True
+                        save = False
+                    else:
+                        value = questionary.text(f"Value for {propSelection}:").ask()
+                        systemdInfo[propSelection] = value
+                        click.echo("This is your policy right now:")
+                        SystemdInfoCondition(**systemdInfo)
+                        pprint(policy, expand_all=True)
+                if save and systemdInfo:
+                    policy[name]["when"]["systemdInfo"] = systemdInfo
+
+            if questionary.confirm("Do you want to modify/add actions? (right now it will only log) Y/n:").ask():
+                availableActions = [k for k in ThenBase.model_fields.keys() if k != "priority"]
+                
+                while True:
+                    actionChoice = questionary.select(
+                        "Choose action to add/modify:",
+                        choices=availableActions + ["[Done]", "[Cancel]"]
+                    ).ask()
+                    
+                    if actionChoice == "[Done]":
+                        break
+                    elif actionChoice == "[Cancel]":
+                        click.echo("Cancelled action modification.")
+                        break
+                    elif actionChoice == "log":
+                        enabled = questionary.confirm("Enable log action? Y/n:").ask()
+                        policy[name]["then"]["log"] = {"enabled": enabled}
+                    elif actionChoice == "push":
+                        methods = questionary.checkbox(
+                            "Select push methods:",
+                            choices=["ntfy", "gotify", "webhook"]
+                        ).ask()
+                        if methods:
+                            policy[name]["then"]["push"] = methods
+                    elif actionChoice == "oled":
+                        message = questionary.text("OLED message (use $subject, $kind):", default="Subject:$subject\\nKind:$kind").ask()
+                        duration = int(questionary.text("Duration (seconds, 3-30):", default="5").ask())
+                        policy[name]["then"]["oled"] = {"message": message, "duration": duration}
+                    elif actionChoice == "script":
+                        scriptName = questionary.text("Script name:").ask()
+                        scriptArgs = questionary.text("Script args (comma-separated, leave empty for none):").ask()
+                        policy[name]["then"]["script"] = {
+                            "name": scriptName,
+                            "args": scriptArgs.split(",") if scriptArgs.strip() else None
+                        }
+                    
+                    click.echo("\nPolicy so far:")
+                    pprint(policy, expand_all=True)
+        
+        # Validate complete policy
+        try:
+            domainPolicyClass = loadSchemaClass("policies", domain)
+            domainPolicyClass(**policy)
+        except Exception as e:
+            click.echo(f"Validation error: {e}", err=True)
+            return
+        
+        # Load existing config and add new policy
+        configDict = loadConfigRaw("policies", domain)
+        configDict.update(policy)
+        
+        # Save
+        saveConfig("policies", configDict, domain)
+        click.echo(f"\nPolicy '{name}' added successfully!")
+        click.echo(f"Edit it with: landserm config policies edit --domain {domain} {name}.<field>")
+        
+    except Exception as e:
+        click.echo(f"Error while making policy: {e}", err=True)
 
 # DELIVERY CONFIG
 

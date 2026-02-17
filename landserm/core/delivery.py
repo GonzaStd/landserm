@@ -4,10 +4,8 @@ from queue import Queue
 from datetime import datetime, timezone
 from luma.oled.device import ssd1306, sh1106, ssd1331
 from typing import Union
-from landserm.config.loader import landsermRoot
 from landserm.config.loader import loadConfig, resolveConfigPath
-from landserm.config.schemas.policies import ThenBase, OledAction, LogAction, PushMethods
-from landserm.config.schemas.delivery import ConfigPush, ConfigOled
+from landserm.config.schemas.policies import OledAction, LogAction, PushMethods
 from landserm.core.context import expand
 from landserm.core.events import Event
 from landserm.core.logger import getLogger

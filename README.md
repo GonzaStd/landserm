@@ -73,3 +73,7 @@ Right now, the only hability of this project is to monitorize d-bus messages loo
 2. Execute installation script with `sudo bash setup/install.sh` and wait until it is finished. Note that if you don't enable landserm-daemon in the installation, you'll have to enable it with `sudo systemctl enable landserm && sudo systemctl start landserm`. You can see daemon logs looking for any trouble with `sudo cat /var/log/landserm/landserm-daemon.log`.
 
 If you want to uninstall this tool (landserm-daemon and landserm CLI) use `sudo bash setup/uninstall.sh` inside of `/opt/landserm`.
+
+# AI Usage
+
+AI was used for guidance, project modelation, complex solutions and it helped me to understand, explained documentations, etc. But the code is mainly made by me.

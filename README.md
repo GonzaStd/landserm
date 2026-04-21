@@ -29,57 +29,147 @@ You have to edit it with the landserm *Command Line Interface* `landserm config 
 It won't likely happen because I'm using pydantic validation. Anyway, you can write an issue and I'll help you. Just make sure you use the CLI and do NOT edit any `.yaml` file.
 
 ## Delivery
-You can configure delivery methods with `landserm config delivery edit` (use `landserm config delivery show` first). For WEBHOOK_URL and GOTIFY_APP_TOKEN you'll need to modify `/etc/landserm/.env` file and assign the values to the variables yourself.
+Delivery methods are configured via `landserm config delivery edit` and inspected with `landserm config delivery show`.
 
-`pushMethods` = `ntfy|gotify|webhook`
+Sensitive values (e.g. `WEBHOOK_URL`, `GOTIFY_APP_TOKEN`) are stored in `/etc/landserm/.env` so the daemon can read them at runtime. Protect this file (root-owned, minimal permissions).
 
-### Delivery Config:
-Follow the template (with config delivery show) and use commands without arguments to get help. All methods can be enabled or disabled globally for all policies.
-* Push: configure server, token, url, etc.
-* Logs: configure folder path. The default is `/var/log/landserm/`, I suggest you to use that one.
-* Oled: change default values if your display is different. You'll probably need to change `address`, `device` and more.
+Supported push methods: `ntfy`, `gotify`, `webhook`.
 
-### Policies:
-* Push: you can specify wich push methods to use in your policy, inside `then` block, adding one or more *pushMethods* to the list with `landserm config policies edit --domain <domain> <policy-name>.then.push `
-* Logs: you can enable it editing enable property as I already explained it.
-* Oled: you can specify a message and duration in seconds. Use edit command.
+Delivery configuration notes:
+- Push: set server URLs, tokens and enable/disable each provider (for example `push.ntfy.enabled`, `push.gotify.enabled`).
+- Logs: configure the logs folder (default `/var/log/landserm/`), ensure the daemon can write there.
+- OLED: configure `device`, `address` and driver-specific settings. OLED is hardware-dependent (see below).
+
+Example `/etc/landserm/.env`:
+
+```ini
+# /etc/landserm/.env
+WEBHOOK_URL="https://discord.com/api/webhooks/ID/TOKEN"
+GOTIFY_URL="https://gotify.example.com"
+GOTIFY_APP_TOKEN="your_gotify_token"
+# add other environment variables required by your configuration
+```
+
+### Discord webhook
+- Create a webhook for the channel you want (Discord → Channel Settings → Integrations → Webhooks).
+- Save the webhook URL in `WEBHOOK_URL` inside of `/etc/landserm/.env` or in the delivery config.
+- Landserm sends a simple JSON payload compatible with Discord webhooks. To test manually:
+
+```bash
+curl -H "Content-Type: application/json" \
+  -d '{"content": "Test message from Landserm"}' \
+  "https://discord.com/api/webhooks/ID/TOKEN"
+```
+
+### ntfy (ntfy.sh)
+- `ntfy` is a lightweight push notification service (https://ntfy.sh). You will want to use a self-hosted ntfy server.
+- Configure `push.ntfy.server` and enable `push.ntfy.enabled` when needed.
+- Test with curl (public service example):
+
+```bash
+curl -s -X POST "https://ntfy.sh/your-topic" -T - <<'EOF'
+Test message from Landserm
+EOF
+```
+### Gotify
+- Gotify requires a running Gotify server and an application token.
+- Store `GOTIFY_URL` and `GOTIFY_APP_TOKEN` in `/etc/landserm/.env` and enable `push.gotify.enabled`.
+- Test with curl:
+
+```bash
+curl -s "https://gotify.example.com/message?token=YOUR_TOKEN" \
+  -F "title=Test" -F "message=Test message from Landserm"
+```
+
+### OLED 
+- OLED output is intended for embedded devices (for example Raspberry Pi) connected via I2C.
+- To use OLED: enable I2C on the device (e.g. `raspi-config`), connect the display, and set `device` (e.g. `/dev/i2c-1`) and `address` (e.g. `0x3C`) in the delivery configuration.
+- OLED depends on specific drivers and libraries. Test OLED functionality on a Raspberry Pi or other supported hardware. Desktop or cloud VMs will not support the OLED feature.
+
+## Testing  (quick practical approach)
+- You can try restarting cron service 
+
+On Debian/Ubuntu:
+
+```bash
+sudo systemctl restart cron
+```
+
+On Fedora/CentOS/RHEL:
+
+```bash
+sudo systemctl restart crond
+```
+
+- After triggering events, check the daemon logs:
+
+```bash
+sudo tail -n 200 /var/log/landserm/landserm-daemon.log
+```
+
+> [!NOTE]
+> I used Debian and I don't know if other distribution will work.
 
 ## Policies
 
-They can configure scripts to execute and arguments based on context variables (for example, `$subject` and `$systemdInfo.<property>` from the event). Each policy has a priority in its action block (the `then` block).
+Policies can configure scripts to execute and arguments based on context variables (for example, `$subject` and `$systemdInfo.<property>` from the event). Each policy has a priority in its action block (the `then` block).
 
 `subject`: service name without `.service`
 `priority` = `low|default|high|urgent`
 
 # Real Landserm Version 1.0
 
-This version has only got one domain: `services`. The code is intended to standardize "domains" for the next version. 
+This version has only got one domain: `services`. The code is intended to standardize "domains" for the next version.
 
 Right now, the only hability of this project is to monitorize d-bus messages looking for systemdInfo of the specified services you configure with `landserm config domains edit --domain services  include` and then `landserm config domains edit --domain services enabled`. You can configure policies as mentioned earlier, the only thing is that this is very generic and doesn't have a lot of info. The only "detailed" conditions you'll have are systemdInfo properties:
 
-| Property | Description |
-|----------|-------------|
-| `active` | Current active state of the service |
-| `substate` | More detailed state information |
-| `load` | Whether the unit file was loaded successfully |
-| `result` | Result of the last execution |
+| Property | Description|
+|----------|------------|
+| `active` | Current active state of the service|
+| `substate` | More detailed state information|
+| `load` | Whether the unit file was loaded successfully|
+| `result` | Result of the last execution|
 | `exec_main` | Process ID of the main service process |
 
-# Setup
+## Setup
+1. Clone to `/opt` (example):
 
-1. Clone this repository in opt with `cd /opt && sudo git clone https://github.com/GonzaStd/landserm && cd landserm`
+```bash
+cd /opt && sudo git clone https://github.com/GonzaStd/landserm && cd landserm
+```
 
-2. Execute installation script with `sudo bash setup/install.sh` and wait until it is finished. Note that if you don't enable landserm-daemon in the installation, you'll have to enable it with `sudo systemctl enable landserm && sudo systemctl start landserm`. You can see daemon logs looking for any trouble with `sudo cat /var/log/landserm/landserm-daemon.log`.
+2. Run the installer:
 
-If you want to uninstall this tool (landserm-daemon and landserm CLI) use `sudo bash setup/uninstall.sh` inside of `/opt/landserm`.
+```bash
+sudo bash setup/install.sh
+```
 
-## One-line automated install (optional)
+The installer may prompt to enable/start the daemon. If the daemon is not enabled automatically:
 
-If you want to install and test Landserm automatically from the repository, you can run the following one-liner on a machine with bash and sudo (this will download and execute the project's full installer which places files under `/opt/landserm` and runs the packaged installer):
+```bash
+sudo systemctl enable landserm
+sudo systemctl start landserm
+```
 
-`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/GonzaStd/landserm/refs/heads/main/setup/full-install.sh)"`
+Check logs:
 
-This command fetches `setup/full-install.sh` from the `main` branch and runs it as root (the script will re-run itself with sudo if you invoke it as a regular user).
+```bash
+sudo cat /var/log/landserm/landserm-daemon.log
+```
+
+To uninstall:
+
+```bash
+sudo bash setup/uninstall.sh
+```
+
+## One-line automated install
+
+To fetch and run the full installer from GitHub:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/GonzaStd/landserm/refs/heads/main/setup/full-install.sh)"
+```
 
 # AI Usage
 

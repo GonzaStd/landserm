@@ -1,4 +1,3 @@
-
 # Landserm Concept
 ![Coneptual Diagram](landserm-concept.png)
 ## What is LandSerM?
@@ -73,6 +72,14 @@ Right now, the only hability of this project is to monitorize d-bus messages loo
 2. Execute installation script with `sudo bash setup/install.sh` and wait until it is finished. Note that if you don't enable landserm-daemon in the installation, you'll have to enable it with `sudo systemctl enable landserm && sudo systemctl start landserm`. You can see daemon logs looking for any trouble with `sudo cat /var/log/landserm/landserm-daemon.log`.
 
 If you want to uninstall this tool (landserm-daemon and landserm CLI) use `sudo bash setup/uninstall.sh` inside of `/opt/landserm`.
+
+## One-line automated install (optional)
+
+If you want to install and test Landserm automatically from the repository, you can run the following one-liner on a machine with bash and sudo (this will download and execute the project's full installer which places files under `/opt/landserm` and runs the packaged installer):
+
+`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/GonzaStd/landserm/refs/heads/main/setup/full-install.sh)"`
+
+This command fetches `setup/full-install.sh` from the `main` branch and runs it as root (the script will re-run itself with sudo if you invoke it as a regular user).
 
 # AI Usage
 

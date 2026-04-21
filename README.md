@@ -44,10 +44,11 @@ Example `/etc/landserm/.env`:
 
 ```ini
 # /etc/landserm/.env
-WEBHOOK_URL="https://discord.com/api/webhooks/ID/TOKEN"
-GOTIFY_URL="https://gotify.example.com"
-GOTIFY_APP_TOKEN="your_gotify_token"
-# add other environment variables required by your configuration
+LANDSERM_CONFIG_PATH="/etc/landserm/" # Default
+LANDSERM_SCRIPTS_PATH="/opt/landserm/user/scripts/" # Default
+
+DISCORD_WEBHOOK_URL="" # Example: https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN
+GOTIFY_TOKEN=""
 ```
 
 ### Discord webhook
